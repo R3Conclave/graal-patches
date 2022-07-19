@@ -16,9 +16,7 @@ RUN apt-get update -y && apt-get install -y \
     ca-certificates \
     software-properties-common \
     gnupg \
-    wget
-
-RUN apt-get update -y && apt-get install -y \
+    wget \
     cmake \
     g++ \
     patch \

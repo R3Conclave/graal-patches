@@ -70,6 +70,7 @@ RUN curl -sSL -o /opt/$LABSJDK_CE_FILE https://github.com/graalvm/labs-openjdk-$
     && tar -xaf /opt/$LABSJDK_CE_FILE -C /opt \
     && rm -v /opt/$LABSJDK_CE_FILE
 
+# TODO: Investigate if it is possible to safely removed the setup-users.sh script. Be aware that removing the script without making any changes to the existing scripts will generate bugs but the container will still run.
 COPY root/scripts/setup-users.sh /scripts/setup-users.sh
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && /scripts/setup-users.sh
 

@@ -3,6 +3,7 @@ set -xeuo pipefail
 
 basedir=$(dirname "$(realpath "$0")")
 graal_version=$1
+graal_commit_id=$2
 major_minor_graal_version=$(cut -d '.' -f 1,2 <<< $graal_version)
 graal_repo="https://github.com/oracle/graal.git"
 graal_branch="release/graal-vm/$major_minor_graal_version"
@@ -23,10 +24,9 @@ pushd $graal_dir
 # Change to a specific commit
 git checkout "vm-$graal_version"
 #Ensure the commit id is the expected one
-expectedCommitHash="e7d7572e8"
 currentCommitHash=$(git rev-parse --short HEAD)
-if [[ "$expectedCommitHash" != "$currentCommitHash" ]]; then
-    echo "The hash of the commit is not the expected one. Expected: $expectedCommitHash, Current: $currentCommitHash"
+if [[ "$graal_commit_id" != "$currentCommitHash" ]]; then
+    echo "The hash of the commit is not the expected one. Expected: $graal_commit_id, Current: $currentCommitHash"
     exit 1
 fi
 

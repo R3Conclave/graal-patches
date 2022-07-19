@@ -68,7 +68,7 @@ task cloneAndPatchGraal(type: Exec) {
     doFirst {
         mkdir tempDir
         workingDir tempDir
-        commandLine "$patchingScript", "$graal_version"
+        commandLine "$patchingScript", "$graal_version", "$graal_commit_id"
 
         // Write current date to graal clone dummy file. If this task is run again, the content of this file
         // will change and subsequent tasks will run.

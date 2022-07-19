@@ -62,14 +62,6 @@ container_image_graalvm_build=$container_image_repo/graalvm-build:$docker_image_
 
 ###################################################################
 
-# USE_MAVEN_REPO can be set to "artifactory" or "sdk" and will affect
-# which artifacts the samples will use.
-# When unset, samples will use the composite build.
-use_maven_repo_flags=()
-if [ -n "${USE_MAVEN_REPO-}" ]; then
-    use_maven_repo_flags=("-e" "USE_MAVEN_REPO=${USE_MAVEN_REPO}")
-fi
-
 docker_group_add=()
 # OS specific settings
 if [ "$(uname)" == "Darwin" ]; then
@@ -130,7 +122,6 @@ docker_opts=(\
     "-v" "${code_host_dir}:${code_host_dir}" \
     "-e" "GRADLE_USER_HOME=/gradle" \
     "-e" "GRADLE_OPTS=-Dorg.gradle.workers.max=$num_cpus" \
-    ${use_maven_repo_flags[@]+"${use_maven_repo_flags[@]}"} \
     $(env | cut -f1 -d= | grep OBLIVIUM_ | sed 's/^OBLIVIUM_/-e OBLIVIUM_/') \
     "-w" "$code_host_dir" \
 )

@@ -31,7 +31,7 @@ ext {
     tempDir     = "$buildDir/tmp"
     graalDir    = "$tempDir/graal"
     graalVMLatestDir    = "$graalDir/vm/latest_graalvm/"
-    graalVMTar          = "$buildDir/distributions/graal-sdk.tar.gz"
+    graalVMTar          = "$buildDir/distributions/graalvm.tar.gz"
 
     // These files are used as a dummy outputs in place of the graalvm repository directory.
     // This prevents buildGraal from re-triggering cloneAndPatchRepository.

@@ -15,7 +15,7 @@ The folder 'patches' contains the patch that updates [Oracle's GraalVM](https://
 required by [Conclave SDK](https://github.com/R3Conclave/conclave-sdk).
 
 ### Scripts
-The folder 'scripts' groups all the scripts that are required to build the artifact `graal-sdk.tar.gz`. However, you must respect the
+The folder 'scripts' groups all the scripts that are required to build the artifact `graalvm.tar.gz`. However, you must respect the
 order they are expected to be run. For instance, you must run the 'build_docker_images.sh' at least once before running 
 'build.sh'. The 'build_docker_images.sh' script generates a docker container image that can be used by the 'build.sh' script.
 
@@ -23,15 +23,15 @@ Use the script 'devenv_shell.sh' to start a shell inside a docker container that
 
 ## Building Graal
 Before building the artifact keep in mind that this project will clone [Oracle's GraalVM](https://github.com/oracle/graal), 
-apply a patch to the cloned repository, and then build the artifact `graal-sdk.tar.gz`.
+apply a patch to the cloned repository, and then build the artifact `graalvm.tar.gz`.
 
-Follow the instructions below to build `graal-sdk.tar.gz` using the scripts:
+Follow the instructions below to build `graalvm.tar.gz` using the scripts:
 ```
 ./scripts/build_docker_images.sh
 ./scripts/build.sh
 ```
 
-Follow the instructions below to build `graal-sdk.tar.gz` manually:
+Follow the instructions below to build `graalvm.tar.gz` manually:
 ```
 ./scripts/devenv_shell.sh
 ./gradlew buildGraal

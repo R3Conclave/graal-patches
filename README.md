@@ -17,7 +17,7 @@ required by [Conclave SDK](https://github.com/R3Conclave/conclave-sdk).
 ### Scripts
 The folder 'scripts' groups all the scripts that are required to build the artifact `graalvm.tar.gz`. However, you must respect the
 order they are expected to be run. For instance, you must run the 'build_docker_images.sh' at least once before running 
-'build.sh'. The 'build_docker_images.sh' script generates a docker container image that can be used by the 'build.sh' script.
+'build.sh'.
 
 Use the script 'devenv_shell.sh' to start a shell inside a docker container that is properly configured to build Graal manually.
 

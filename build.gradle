@@ -48,7 +48,9 @@ task clean(type: Delete) {
     group = 'Build'
     description = 'Deletes the build directory.'
 
-    delete files("$buildDir")
+    doFirst {
+        delete buildDir
+    }
 }
 
 task cloneAndPatchGraal(type: Exec) {

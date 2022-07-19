@@ -61,13 +61,6 @@ buildAndPublishContainerIfItDoesNotExist() {
 buildContainer() {
     echo "Building docker image container $1..."
 
-    # Copy the setup-users-sh script. The file is being copied to reduce duplication
-    root_script_dir="${code_host_dir}/containers/graalvm-build/docker/root/scripts"
-    # Ensure the directory exists
-    mkdir -p ${root_script_dir}
-    # Copy the file
-    cp "${code_host_dir}/../containers/sdk-build/src/docker/root/scripts/setup-users.sh" "${root_script_dir}/setup-users.sh"
-
     # Build the docker image based on the Dockerfile and save it to a file so it can be loaded when required
     # This will reduced the time required to run a container in TeamCity because the docker image is built once
     # and it can be loaded by the different subprojects such as "SDK Unit Tests and build", "SDK Integration Tests (Debug)",...

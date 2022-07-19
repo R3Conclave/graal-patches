@@ -37,9 +37,9 @@ fi
 
 ###################################################################
 
-# Generate the docker image tag based on the contents inside the containers module
-# Please be sure that any script that might change the final docker container image
-# is inside the folder containers/scripts. Otherwise, the tag generated won't be
+# Generate the Docker image tag based on the contents inside the docker directory
+# Please be sure that any script that might change the final Docker container image
+# is inside the folder docker/scripts. Otherwise, the tag generated won't be
 # correct and you run the risk of overwriting existing docker images that are used
 # by older release branches. Keep in mind that temporary or build directories should be excluded
 # The following code generates the hash based on the contents of a directory and the version of graal used.
@@ -50,8 +50,8 @@ fi
 # In order to allow build_publish_docker_images to detect automatically the new version of graal, the hash generated
 # must include the graal_version as well.
 pushd ${code_host_dir}
-containers_dir_hash=$(find ./containers \( ! -regex '.*/\..*\|.*/root/.*' \) -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d ' ' -f1)
-docker_image_tag=$(echo $containers_dir_hash-$graal_version | sha256sum | cut -d ' ' -f1)
+docker_dir_hash=$(find ./docker \( ! -regex '.*/\..*\|.*/root/.*' \) -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d ' ' -f1)
+docker_image_tag=$(echo $docker_dir_hash-$graal_version | sha256sum | cut -d ' ' -f1)
 popd
 
 # Docker container images repository (This repo is usually Artifactory)
@@ -109,7 +109,7 @@ docker_opts=(\
     "--rm" \
     "-u" "$(id -u):$(id -g)" \
     "--ulimit" "core=512000000" \
-    "--label" "graalvm" \
+    "--label" "graalvm-build" \
     ${docker_group_add[@]+"${docker_group_add[@]}"} \
     ${network_cmd[@]+"${network_cmd[@]}"} \
     "-v" "$HOME/.gradle:/gradle" \

@@ -22,7 +22,6 @@ ext {
             'OBLIVIUM_MAVEN_USERNAME',
             'OBLIVIUM_MAVEN_PASSWORD',
             'OBLIVIUM_CONTAINER_REGISTRY_URL',
-            'JVMCI_HOME',
             'MX_HOME',
             'DOCKER_CONTAINER_IS_RUNNING'
     )
@@ -176,12 +175,7 @@ task tarGraal(type: Exec) {
     outputs.file(graalVMTar)
 
     doFirst {
-        if (environment.JVMCI_HOME.contains('openjdk1.8')) {
-            commandLine 'tar', 'czf', "$graalVMTar", '-C', getGraalBuildFolder.graalVMDir, '.'
-        }
-        else {
-            commandLine 'tar', 'czf', "$graalVMTar", '-C', getGraalBuildFolder.graalVMDir, '.'
-        }
+        commandLine 'tar', 'czf', "$graalVMTar", '-C', getGraalBuildFolder.graalVMDir, '.'
     }
 }
 

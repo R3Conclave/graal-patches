@@ -16,7 +16,7 @@ RUN apt-get update -y && apt-get install -y \
     ca-certificates \
     software-properties-common \
     gnupg \
-    wget \
+    wget  \
     cmake \
     g++ \
     patch \
@@ -47,9 +47,7 @@ ENV LABSJDK_VERSION     17.0.2
 ENV LABSJDK_MAJOR       17
 ENV LABSJDK_BUILD       8
 ENV LABSJDK_CE_FILE     labsjdk-ce-$LABSJDK_VERSION+$LABSJDK_BUILD-jvmci-$JVMCI_VERSION-linux-amd64.tar.gz
-ENV LABSJDK_HOME        /opt/labsjdk-ce-$LABSJDK_VERSION-jvmci-$JVMCI_VERSION
-ENV JVMCI_HOME          $LABSJDK_HOME
-ENV JAVA_HOME           $JVMCI_HOME
+ENV JAVA_HOME           /opt/labsjdk-ce-$LABSJDK_VERSION-jvmci-$JVMCI_VERSION
 ENV MX_HOME             /opt/mx-$MX_VERSION
 
 # From MX version 5.294.1 we must use Python 3 otherwise the

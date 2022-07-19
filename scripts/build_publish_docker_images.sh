@@ -6,7 +6,7 @@ set -xeuo pipefail
 ###################################################################
 # Publishing the docker container images are turned off by default to allow people to run this script without getting an error.
 # Most likely, no developer has permissions to publish to remote repository.
-# In order to publish the docker container images, set the first argument to "publish". For instance, ./containers/scripts/build_publish_docker_images.sh publish.
+# In order to publish the docker container images, set the first argument to "publish". For instance, ./scripts/build_publish_docker_images.sh publish.
 publish_images="${1:-}"
 
 ###################################################################
@@ -65,7 +65,7 @@ buildContainer() {
     # This will reduced the time required to run a container in TeamCity because the docker image is built once
     # and it can be loaded by the different subprojects such as "SDK Unit Tests and build", "SDK Integration Tests (Debug)",...
     build_dir="${code_host_dir}/build"
-    dockerfile_dir="${code_host_dir}/containers/graalvm-build/docker"
+    dockerfile_dir="${code_host_dir}/docker"
 
     pushd "$dockerfile_dir"
     docker build -t "$1" --build-arg commit_id=$commit_id .

@@ -11,7 +11,6 @@ The files inside this project are grouped to make the project discovery easy.
 | [`docker/`](docker)                    | Contains the Dockerfile used to generate the Docker image required to build Graal without having to worry about installing any required tools in your system. |
 | [`patches/`](patches)                  | Contains the modifications to [GraalVM](https://github.com/oracle/graal) as patch files.                                                                      |
 | [`scripts/`](scripts)                  | Contains all the scripts that are required to build the artifact `graalvm.tar.gz`.                                                                            |
-|
 
 ## Building Graal
 Before building the artifact keep in mind that this project will clone [GraalVM](https://github.com/oracle/graal), 

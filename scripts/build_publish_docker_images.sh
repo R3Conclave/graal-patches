@@ -6,7 +6,7 @@ set -xeuo pipefail
 ###################################################################
 # Publishing the docker container images are turned off by default to allow people to run this script without getting an error.
 # Most likely, no developer has permissions to publish to remote repository.
-# In order to publish the docker container images, set the first argument to "publish". For instance, ./containers/scripts/ci_build_publish_docker_images.sh publish.
+# In order to publish the docker container images, set the first argument to "publish". For instance, ./containers/scripts/build_publish_docker_images.sh publish.
 publish_images="${1:-}"
 
 ###################################################################
@@ -22,7 +22,7 @@ getGitCommitId() {
 ## Configuration
 ###################################################################
 script_dir=$(dirname ${BASH_SOURCE[0]})
-source ${script_dir}/ci_build_common.sh
+source ${script_dir}/build_common.sh
 
 # Git commit id
 commit_id=$(getGitCommitId)
@@ -51,7 +51,7 @@ buildAndPublishContainerIfItDoesNotExist() {
     if [ "$publish_images" == "publish" ]; then
       publishContainer $1
     else
-      echo "Container image will not be published. To publish the container image type ./ci_build_publish_docker_images.sh publish. You must be authorized user to publish to the repository"
+      echo "Container image will not be published. To publish the container image type ./build_publish_docker_images.sh publish. You must be authorized user to publish to the repository"
     fi
   fi
 }
@@ -97,7 +97,7 @@ buildAndPublishContainerIfItDoesNotExist() {
     if [ "$publish_images" == "publish" ]; then
       publishContainer $1
     else
-      echo "Container image will not be published. To publish the container image type ./ci_build_publish_docker_images.sh publish. You must be authorized user to publish to the repository"
+      echo "Container image will not be published. To publish the container image type ./build_publish_docker_images.sh publish. You must be authorized user to publish to the repository"
     fi
   fi
 }

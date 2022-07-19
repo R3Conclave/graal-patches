@@ -7,7 +7,7 @@ then
 fi
 
 source ${script_dir}/devenv_envs.sh
-source ${script_dir}/ci_build_common.sh
+source ${script_dir}/build_common.sh
 
 container_name=$(echo "code${code_host_dir}" | sed -e 's/[^a-zA-Z0-9_.-]/_/g')
 container_id=$(docker ps -aqf name=^/$container_name\$ || echo "")
@@ -17,7 +17,7 @@ if [[ -z ${container_id} ]]; then
   if [ "$OBLIVIUM_CONTAINER_REGISTRY_URL" != "localhost:5000" ] && [ "$docker_image_pull" == "1" ]; then
     docker pull $container_image_graalvm_build
   else
-    ${script_dir}/ci_build_publish_docker_images.sh
+    ${script_dir}/build_publish_docker_images.sh
   fi
 
   container_id=$(docker run \

@@ -47,7 +47,7 @@ fi
 # The cut command removes the dash at the end.
 # All subdirectories with name build and hidden files are excluded. Please be sure that any file
 # that is not tracked by git should not be included in this hash.
-# In order to allow ci_build_publish_docker_images to detect automatically the new version of graal, the hash generated
+# In order to allow build_publish_docker_images to detect automatically the new version of graal, the hash generated
 # must include the graal_version as well.
 pushd ${code_host_dir}
 containers_dir_hash=$(find ./containers \( ! -regex '.*/\..*\|.*/root/.*' \) -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d ' ' -f1)

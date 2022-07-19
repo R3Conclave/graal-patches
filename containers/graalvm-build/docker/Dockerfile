@@ -72,7 +72,6 @@ RUN curl -sSL -o /opt/$LABSJDK_CE_FILE https://github.com/graalvm/labs-openjdk-$
     && tar -xaf /opt/$LABSJDK_CE_FILE -C /opt \
     && rm -v /opt/$LABSJDK_CE_FILE
 
-# Set up a fake user. Without this System.getProperty("user.home") returns '?' which confuses Corda.
 COPY root/scripts/setup-users.sh /scripts/setup-users.sh
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && /scripts/setup-users.sh
 

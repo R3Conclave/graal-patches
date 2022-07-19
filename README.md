@@ -34,8 +34,10 @@ Follow the instructions below to build `graalvm.tar.gz` using the scripts:
 Follow the instructions below to build `graalvm.tar.gz` manually:
 ```
 ./scripts/devenv_shell.sh
-./gradlew buildGraal
+./gradlew tarGraal
 ```
+
+The artifact can be found in the directory `./build/distributions`.
 
 ## License
 The changes made to GraalVM in this repository are open source and distributed under [version 2 of the GNU General Public License with the “Classpath” Exception](LICENSE).

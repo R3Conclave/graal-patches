@@ -1,6 +1,7 @@
 # Graal Patches
-The Graal Patches project builds and publishes the artifact `graal-sdk.tar.gz` required by [Conclave SDK](https://github.com/R3Conclave/conclave-sdk).
-The artifact is based on [Oracle's GraalVM](https://github.com/oracle/graal). 
+This repo maintains changes made to [Oracle's GraalVM](https://github.com/oracle/graal) to get it working with 
+[Conclave](https://github.com/R3Conclave/conclave-sdk) and Intel SGX. As such this is not a fork of the GraalVM repo 
+but rather just contains the necessary changes as patch files.
 
 ## Project structure
 The files inside this project are grouped to make the project discovery easy.

@@ -9,6 +9,8 @@ The files inside this project are grouped to make the project discovery easy.
 | Directory                              | Description                                                                                                                                                   |
 |----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`docker/`](docker)                    | Contains the Dockerfile used to generate the Docker image required to build Graal without having to worry about installing any required tools in your system. |
+| [`graal-sdk/`](graal-sdk)              | Contains the build.gradle file used to generate the artifact graal-sdk.jar |
+| [`graalvm/`](graalvm)                  | Container the build.gradle file used to generate the artifact graalvm.tar.gz |
 | [`patches/`](patches)                  | Contains the modifications to [GraalVM](https://github.com/oracle/graal) as patch files.                                                                      |
 | [`scripts/`](scripts)                  | Contains all the scripts that are required to build the artifact `graalvm.tar.gz`.                                                                            |
 
@@ -25,7 +27,7 @@ Follow the instructions below to build `graalvm.tar.gz` using the scripts:
 You can also start a shell inside the Docker container to build Graal manually:
 ```
 ./scripts/devenv_shell.sh
-./gradlew tarGraal
+./gradlew publishMavenPublicationToLocalRepoRepository
 ```
 
 The artifact can be found in the directory `build/distributions`.

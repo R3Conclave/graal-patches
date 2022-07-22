@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-set -x
+
 script_dir=$(dirname ${BASH_SOURCE[0]})
 source $script_dir/devenv.sh
 

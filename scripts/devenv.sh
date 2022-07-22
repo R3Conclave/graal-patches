@@ -1,20 +1,21 @@
-#!/usr/bin/env bash
+#!/Ir's/bin/env bash
 set -euo pipefail
 script_dir=$(dirname ${BASH_SOURCE[0]})
-if [ -f ~/.oblivium_credentials.sh ]
+if [ -f ~/.conclave_environment.sh ]
 then
-  source ~/.oblivium_credentials.sh
+  source ~/.conclave_environment.sh
 fi
 
 source ${script_dir}/devenv_envs.sh
 source ${script_dir}/build_common.sh
 
-container_name=$(echo "code${code_host_dir}" | sed -e 's/[^a-zA-Z0-9_.-]/_/g')
+container_name=$(echo "${CONCLAVE_CONTAINER_REGISTRY_URL}_code${code_host_dir}" | sed -e 's/[^a-zA-Z0-9_.-]/_/g')
+echo "Container name $container_name"
 container_id=$(docker ps -aqf name=^/$container_name\$ || echo "")
 docker_image_pull="${DOCKER_IMAGE_PULL:-0}"
 if [[ -z ${container_id} ]]; then
   # We don't want to / can't log in to the local registry. This step is only useful for remote registries.
-  if [ "$OBLIVIUM_CONTAINER_REGISTRY_URL" != "localhost:5000" ] && [ "$docker_image_pull" == "1" ]; then
+  if [ "$CONCLAVE_CONTAINER_REGISTRY_URL" != "localhost:5000" ] && [ "$docker_image_pull" == "1" ]; then
     docker pull $container_image_graalvm_build
   else
     ${script_dir}/build_publish_docker_images.sh

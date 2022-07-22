@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -xeuo pipefail
 
+script_dir=$(dirname ${BASH_SOURCE[0]})
+source ${script_dir}/devenv_envs.sh
+
 ###################################################################
 ## Read any arguments passed to the script
 ###################################################################

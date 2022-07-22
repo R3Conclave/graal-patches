@@ -9,7 +9,8 @@ fi
 source ${script_dir}/devenv_envs.sh
 source ${script_dir}/build_common.sh
 
-container_name=$(echo "${CONCLAVE_CONTAINER_REGISTRY_URL}_code${code_host_dir}" | sed -e 's/[^a-zA-Z0-9_.-]/_/g')
+#container_name=$(echo "${CONCLAVE_CONTAINER_REGISTRY_URL}_code${code_host_dir}" | sed -e 's/[^a-zA-Z0-9_.-]/_/g')
+container_name=$(echo "code${code_host_dir}" | sed -e 's/[^a-zA-Z0-9_.-]/_/g')
 echo "Container name $container_name"
 container_id=$(docker ps -aqf name=^/$container_name\$ || echo "")
 docker_image_pull="${DOCKER_IMAGE_PULL:-0}"

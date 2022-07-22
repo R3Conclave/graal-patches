@@ -57,7 +57,7 @@ docker_image_tag=$(echo $docker_dir_hash-$graal_version | sha256sum | cut -d ' '
 popd
 
 # Docker container images repository (This repo is usually Artifactory)
-container_image_repo=$CONCLAVE_CONTAINER_REGISTRY_URL/com.r3.conclave
+container_image_repo=conclave-sdk/com.r3.conclave
 
 # Docker container images
 container_image_graalvm_build=$container_image_repo/graalvm-build:$docker_image_tag

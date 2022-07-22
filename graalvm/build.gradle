@@ -1,0 +1,143 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Global variables
+////////////////////////////////////////////////////////////////////////////////////////////////////
+ext {
+    // Directories and files paths
+    graalVMLatestDir = "$graalDir/vm/latest_graalvm/"
+    graalVMTar = "$buildDir/distributions/graalvm.tar.gz"
+
+    // These files are used as a dummy outputs in place of the graalvm repository directory.
+    // This prevents buildGraal from re-triggering cloneAndPatchRepository.
+    graalBuildDummy = "$tempDir/graal_built_time"
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Tasks
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * From the instructions on the README.md at https://github.com/oracle/graal/tree/vm-20.1.0/vm
+ *
+ * The components that can be included or excluded during the graalvm build:
+ * Components:
+ * - GraalVM compiler ('cmp', /graal)
+ * - Truffle ('tfl', /truffle)
+ * - Component installer ('gu', /installer)
+ * - SubstrateVM ('svm', /svm)
+ * - Native Image licence files ('nil', /svm)
+ * - Native Image ('ni', /svm)
+ * - TRegex ('rgx', /regex)
+ * - Polyglot Native API ('polynative', /polyglot)
+ * - LLVM.org toolchain ('llp', /llvm)
+ * - GraalVM license files ('gvm', /.)
+ * - Truffle NFI ('nfi', /nfi)
+ * - Truffle Macro ('tflm', /truffle)
+ * - SubstrateVM LLVM ('svml', /svm)
+ * - Polyglot Launcher ('poly', /polyglot)
+ * - Native Image JUnit ('nju', /junit)
+ * - Native Image Configure Tool ('nic', /svm)
+ * - Graal.js ('js', /js)
+ * - LibGraal ('lg', /False)
+ * - Graal SDK ('sdk', /graalvm)
+ * - Polyglot Library ('libpoly', /polyglot)
+ * Launchers:
+ * - gu (native)
+ * - native-image (native)
+ * - polyglot (native)
+ * - native-image-configure (native)
+ * - js (native)
+ */
+task buildGraal(type: Exec) {
+    dependsOn cloneAndPatchGraal
+
+    // Task details
+    group = 'Build'
+    description = 'Compiles the source code of Graal. For testing purposes consider using the property -PexcludeDynamicLanguages to run the task faster by excluding all dynamic languages such as Javascript and Pythonn.'
+
+    //  This property can be used to speed up an SDK build when no dynamic languages are needed
+    def excludeDynamicLanguages = findProperty('excludeDynamicLanguages')
+
+    // Register graal repository dummy file as an input and repository directory as output
+    inputs.files(graalCloneDummy)
+    outputs.files(graalBuildDummy)
+
+    doFirst {
+
+        assertDockerContainerIsBeingUsed()
+
+        workingDir "$graalDir/vm"
+
+        // The --force-bash-launchers makes the build faster and use far less RAM by skipping the native-imaging of
+        // some tools we don't use or care about. Without that flag the build can fail due to running out of RAM.
+        if (excludeDynamicLanguages != null) {
+        commandLine "${environment.MX_HOME}/mx", '--skip-libraries=polyglot', '--dynamicimports', '/substratevm',
+                '--exclude-components=nju,nic,llp,lg,gu,polynative,gvm,poly,nil,svml', '--force-bash-launchers=polybench', 'build'
+        } else {
+            commandLine "${System.getenv('MX_HOME')}/mx", '--skip-libraries=polyglot', '--dynamicimports', 'graalpython,graal-js,/substratevm',
+                   '--exclude-components=nju,nic,llp,lg,gu,polynative,gvm,poly,nil,svml', '--force-bash-launchers=python,js,polybench', 'build'
+        }
+    }
+
+    doLast {
+        // Write current date to graal build dummy file. If this task is run again, the content of this file
+        // will change and subsequent tasks will run.
+        writeDateToFile(graalBuildDummy)
+    }
+}
+
+task getGraalBuildFolder(type: Exec) {
+    dependsOn buildGraal
+
+    inputs.files(graalBuildDummy)
+    standardOutput = new ByteArrayOutputStream()
+
+    commandLine 'ls', "$graalVMLatestDir"
+    doLast {
+        ext.graalVMDir = graalVMLatestDir + standardOutput.toString().replaceAll('\\r', '').replaceAll('\\n', '')
+    }
+}
+
+/**
+ * The command line util `tar` is being used rather Gradle's Tar task due to
+ * https://github.com/gradle/gradle/issues/3982, which describes symlinks being followed
+ * rather than preserved. Graal fails to run with the resolved symlinks.
+ */
+task tarGraal(type: Exec) {
+    dependsOn getGraalBuildFolder
+
+    // Task details
+    group = 'Other'
+    description = 'Generate graalvm.tar file.'
+
+    // Set the input to the folder in which the build is generated. We actually want to tar the only subdirectory from this.
+    inputs.dir(graalVMLatestDir)
+    outputs.file(graalVMTar)
+
+    doFirst {
+        commandLine 'tar', 'czf', "$graalVMTar", '-C', getGraalBuildFolder.graalVMDir, '.'
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Maven-publish - Configuration for publishing maven artifacts
+////////////////////////////////////////////////////////////////////////////////////////////////////
+publishing {
+    // List of artifacts to publish
+    publications {
+
+        // Publish the tar file that contains graal
+        maven(MavenPublication) {
+
+            // Artifact to be publish
+            artifact(graalVMTar) {
+                extension 'tar.gz'
+                builtBy(tarGraal)
+
+                // Details about the artifact being publish
+                groupId = "com.r3.conclave"
+                artifactId = "graalvm"
+                version = "$graal_version-$conclave_version"
+                description = 'Graal distribution including SubstrateVM and tools'
+            }
+        }
+    }
+}

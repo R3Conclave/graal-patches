@@ -31,6 +31,9 @@ ext {
     graalDir    = "$tempDir/graal"
     graalVMLatestDir    = "$graalDir/vm/latest_graalvm/"
     graalVMTar          = "$buildDir/distributions/graalvm.tar.gz"
+    graalSDKDir         = "$graalDir/sdk"
+    graalSDKMxOutput    = "$graalSDKDir/mxbuild/dists/graal-sdk.jar"
+    graalSDKJar         = "$buildDir/distributions/graal-sdk.jar"
 
     // These files are used as a dummy outputs in place of the graalvm repository directory.
     // This prevents buildGraal from re-triggering cloneAndPatchRepository.
@@ -179,6 +182,38 @@ task tarGraal(type: Exec) {
     }
 }
 
+task buildGraalSDK(type: Exec) {
+    dependsOn cloneAndPatchGraal
+
+    // Task details
+    group = 'Other'
+    description = 'Generate graal-sdk.jar file.'
+
+    // Set the input to the folder in which the build is generated from
+    inputs.dir(graalSDKDir)
+    outputs.file(graalSDKMxOutput)
+
+    doFirst {
+        commandLine "${environment.MX_HOME}/mx", "-p", "$graalSDKDir", "build"
+    }
+}
+
+task copyGraalSDKToBuildDistributions(type: Exec) {
+    dependsOn buildGraalSDK
+
+    // Task details
+    group = 'Other'
+    description = 'Mpves graal-sdk.jar file to the build/distributios folder'
+
+    // Set the input to the folder in which the build is generated from
+    inputs.file(graalSDKMxOutput)
+    outputs.file(graalSDKJar)
+
+    doFirst {
+        commandLine "cp", "-r", "$graalSDKMxOutput",  "$graalSDKJar"
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Maven-publish - Configuration for publishing maven artifacts
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -200,6 +235,21 @@ publishing {
             artifactId = "graalvm"
             version = "$graal_version-$conclave_version"
             description = 'Graal distribution including SubstrateVM and tools'
+        }
+
+        // Publish the graal-sdk.jar
+        maven(MavenPublication) {
+
+            // Artifacts to be publish
+            artifact(graalSDKJar) {
+                builtBy(copyGraalSDKToBuildDistributions)
+            }
+
+            // Details about the artifact being publish
+            groupId = "com.r3.conclave"
+            artifactId = "graal-sdk"
+            version = "$graal_version-$conclave_version"
+            description = 'Graal SDK'
         }
     }
 

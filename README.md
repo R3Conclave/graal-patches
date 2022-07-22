@@ -15,7 +15,7 @@ The files inside this project are grouped to make the project discovery easy.
 | [`scripts/`](scripts)                  | Contains all the scripts that are required to build the artifact `graalvm.tar.gz`.                                                                            |
 
 ## Building graalvm and graal-sdk
-Before building the artifacts graalvm, and graal-sdk  keep in mind that this project will clone [GraalVM](https://github.com/oracle/graal), 
+Before building the artifacts graalvm, and graal-sdk, keep in mind that this project will clone [GraalVM](https://github.com/oracle/graal), 
 apply a patch to the cloned repository, and then build `graalvm.tar.gz`, and`graal-sdk.jar`.
 
 Follow the instructions below to build `graalvm.tar.gz`, and`graal-sdk.jar` using the scripts:

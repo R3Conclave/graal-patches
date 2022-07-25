@@ -91,8 +91,8 @@ allprojects {
 
             // Local repository - Useful for testing purposes
             maven {
-                name = "LocalRepo"
-                url = "$buildDir/repo/graalVM"
+                name = "build"
+                url = "$buildDir/repo"
             }
         }
     }

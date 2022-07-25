@@ -27,10 +27,10 @@ Follow the instructions below to build `graalvm.tar.gz`, and`graal-sdk.jar` usin
 You can also start a shell inside the Docker container to build the artifacts manually:
 ```
 ./scripts/devenv_shell.sh
-./gradlew publishMavenPublicationToLocalRepoRepository
+./gradlew publishMavenPublicationToBuildRepository
 ```
 
-The artifact can be found in the directory `graalvm/build/repo`, and `graal-sdk/build/repo`, respectively.
+The artifacts can be found in the directory `graalvm/build/repo`, and `graal-sdk/build/repo`, respectively.
 
 ## License
 The changes made to GraalVM in this repository are open source and distributed under [version 2 of the GNU General 

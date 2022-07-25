@@ -127,7 +127,7 @@ publishing {
         // Publish the tar file that contains graal
         maven(MavenPublication) {
 
-            // Artifact to be publish
+            // Artifact to be published
             artifact(graalVMTar) {
                 extension 'tar.gz'
                 builtBy(tarGraal)

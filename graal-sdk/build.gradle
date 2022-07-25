@@ -37,7 +37,7 @@ publishing {
         // Publish the tar file that contains graal
         maven(MavenPublication) {
 
-            // Artifacts to be publish
+            // Artifact to be published
             artifact(graalSDKJar) {
                 builtBy(buildGraalSDK)
 

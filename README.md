@@ -20,7 +20,7 @@ apply a patch to the cloned repository, and then build `graalvm.tar.gz`, and`gra
 
 Follow the instructions below to build `graalvm.tar.gz`, and`graal-sdk.jar` using the scripts:
 ```
-./scripts/build_docker_images.sh
+./scripts/build_publish_docker_images.sh
 ./scripts/build.sh
 ```
 

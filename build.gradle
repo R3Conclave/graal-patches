@@ -82,7 +82,7 @@ allprojects {
             // Artifactory repository
             maven {
                 name = "artifactory"
-                url = "${environment.OBLIVIUM_MAVEN_URL}/${environment.OBLIVIUM_MAVEN_REPOSITORY}"
+                url = getMavenRepositoryURL()
                 credentials {
                     username = environment.OBLIVIUM_MAVEN_USERNAME
                     password = environment.OBLIVIUM_MAVEN_PASSWORD
@@ -109,6 +109,38 @@ allprojects {
 // Value of the map: environment variable value
 static Map<String, String> getEnvironmentVariables(String... envNames) {
     return envNames.collectEntries {envName -> [(envName): System.getenv(envName)] }
+}
+
+String getMavenRepositoryURL() {
+    def url = "${environment.OBLIVIUM_MAVEN_URL}/${environment.OBLIVIUM_MAVEN_REPOSITORY}"
+    if (conclave_version.endsWith("-SNAPSHOT")) {
+        return url + "-dev"
+    }
+
+    // Make sure this is a release branch
+    def gitBranchName = getGitBranchName()
+    if(!gitBranchName.startsWith("release/")) {
+        throw new GradleException("Cannot determine which repository to use for publishing the artifact")
+    }
+    return url + "-release"
+}
+
+String runShellCommand(String command) {
+    def stdOutput = new StringBuilder()
+    def stdErr = new StringBuilder()
+    def proc = command.execute()
+
+    proc.consumeProcessOutput(stdOutput, stdErr)
+    proc.waitForOrKill(1000)
+
+    if(stdErr.length() != 0) {
+        throw new GradleException(stdErr)
+    }
+    return stdOutput
+}
+
+String getGitBranchName() {
+    return runShellCommand("git branch --show-current")
 }
 
 // Writes the current date and time to a file

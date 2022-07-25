@@ -16,8 +16,6 @@ allprojects {
         // Environment variables loaded from the system
         // Add any environment variable to the argument list if it needs to be accessible by Gradle
         environment = getEnvironmentVariables(
-                'OBLIVIUM_MAVEN_URL',
-                'OBLIVIUM_MAVEN_REPOSITORY',
                 'OBLIVIUM_MAVEN_USERNAME',
                 'OBLIVIUM_MAVEN_PASSWORD',
                 'OBLIVIUM_CONTAINER_REGISTRY_URL',
@@ -82,7 +80,7 @@ allprojects {
             // Artifactory repository
             maven {
                 name = "artifactory"
-                url = getMavenRepositoryURL()
+                url = getArtifactoryForPublication()
                 credentials {
                     username = environment.OBLIVIUM_MAVEN_USERNAME
                     password = environment.OBLIVIUM_MAVEN_PASSWORD
@@ -111,36 +109,18 @@ static Map<String, String> getEnvironmentVariables(String... envNames) {
     return envNames.collectEntries {envName -> [(envName): System.getenv(envName)] }
 }
 
-String getMavenRepositoryURL() {
-    def url = "${environment.OBLIVIUM_MAVEN_URL}/${environment.OBLIVIUM_MAVEN_REPOSITORY}"
-    if (conclave_version.endsWith("-SNAPSHOT")) {
+String getArtifactoryForPublication() {
+    def url = "https://software.r3.com/artifactory/conclave-maven"
+    def conclaveGraal = getConclaveGraalVersion()
+    if (conclaveGraal.endsWith("-SNAPSHOT")) {
         return url + "-dev"
     }
 
-    // Make sure this is a release branch
-    def gitBranchName = getGitBranchName()
-    if(!gitBranchName.startsWith("release/")) {
-        throw new GradleException("Cannot determine which repository to use for publishing the artifact")
-    }
     return url + "-release"
 }
 
-String runShellCommand(String command) {
-    def stdOutput = new StringBuilder()
-    def stdErr = new StringBuilder()
-    def proc = command.execute()
-
-    proc.consumeProcessOutput(stdOutput, stdErr)
-    proc.waitForOrKill(1000)
-
-    if(stdErr.length() != 0) {
-        throw new GradleException(stdErr)
-    }
-    return stdOutput
-}
-
-String getGitBranchName() {
-    return runShellCommand("git branch --show-current")
+String getConclaveGraalVersion() {
+    return "$graal_version-$conclave_version"
 }
 
 // Writes the current date and time to a file

@@ -44,8 +44,17 @@ publishing {
                 // Details about the artifact being published
                 groupId = "com.r3.conclave"
                 artifactId = "graal-sdk"
-                version = "$graal_version-$conclave_version"
+                version = getConclaveGraalVersion()
                 description = 'Graal SDK'
+            }
+
+            pom {
+                licenses {
+                    license {
+                        name = 'Universal Permissive License, Version 1.0'
+                        url = 'http://opensource.org/licenses/UPL'
+                    }
+                }
             }
         }
     }

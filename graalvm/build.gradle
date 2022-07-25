@@ -132,7 +132,7 @@ publishing {
                 extension 'tar.gz'
                 builtBy(tarGraal)
 
-                // Details about the artifact being publish
+                // Details about the artifact being published
                 groupId = "com.r3.conclave"
                 artifactId = "graalvm"
                 version = "$graal_version-$conclave_version"

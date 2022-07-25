@@ -41,7 +41,7 @@ publishing {
             artifact(graalSDKJar) {
                 builtBy(buildGraalSDK)
 
-                // Details about the artifact being publish
+                // Details about the artifact being published
                 groupId = "com.r3.conclave"
                 artifactId = "graal-sdk"
                 version = "$graal_version-$conclave_version"

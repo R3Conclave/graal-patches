@@ -1,0 +1,52 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Global variables
+////////////////////////////////////////////////////////////////////////////////////////////////////
+ext {
+    // Directories and files paths
+    graalSDKDir = "$graalDir/sdk"
+    graalSDKJar = "$graalSDKDir/mxbuild/dists/graal-sdk.jar"
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Tasks
+////////////////////////////////////////////////////////////////////////////////////////////////////
+task buildGraalSDK(type: Exec) {
+    dependsOn cloneAndPatchGraal
+
+    // Task details
+    group = 'Other'
+    description = 'Generate graal-sdk.jar file.'
+
+    // Set the input to the folder in which the build is generated from
+    inputs.dir(graalSDKDir)
+    outputs.file(graalSDKJar)
+
+    doFirst {
+        commandLine "${environment.MX_HOME}/mx", "-p", "$graalSDKDir", "build"
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Maven-publish - Configuration for publishing maven artifacts
+////////////////////////////////////////////////////////////////////////////////////////////////////
+publishing {
+
+    // List of artifacts to publish
+    publications {
+
+        // Publish the tar file that contains graal
+        maven(MavenPublication) {
+
+            // Artifact to be published
+            artifact(graalSDKJar) {
+                builtBy(buildGraalSDK)
+
+                // Details about the artifact being published
+                groupId = "com.r3.conclave"
+                artifactId = "graal-sdk"
+                version = "$graal_version-$conclave_version"
+                description = 'Graal SDK'
+            }
+        }
+    }
+}

@@ -1,1 +1,4 @@
 rootProject.name = 'graal-patches'
+
+include 'graal-sdk'
+include 'graalvm'

@@ -42,9 +42,7 @@ publishing {
                 builtBy(buildGraalSDK)
 
                 // Details about the artifact being published
-                groupId = "com.r3.conclave"
                 artifactId = "graal-sdk"
-                version = conclave_graal_version
                 description = 'Graal SDK'
             }
 

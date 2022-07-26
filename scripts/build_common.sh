@@ -21,7 +21,7 @@ mkdir -p $HOME/.container
 ###################################################################
 
 # Get graal version
-graal_version="$(grep -w "graal_version" ./versions.gradle | cut -d '=' -f 2 | sed "s/[ ']//g")"
+graal_version="$(grep -w "graal_version =" ./versions.gradle | cut -d '=' -f 2 | sed "s/[ ']//g")"
 if [ -z "$graal_version" ]; then
   echo "Unable to get graal version"
   exit 1

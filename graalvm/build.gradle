@@ -133,9 +133,7 @@ publishing {
                 builtBy(tarGraal)
 
                 // Details about the artifact being published
-                groupId = "com.r3.conclave"
                 artifactId = "graalvm"
-                version = conclave_graal_version
                 description = 'Graal distribution including SubstrateVM and tools'
             }
 

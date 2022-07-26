@@ -92,6 +92,14 @@ allprojects {
                 name = "build"
                 url = "$buildDir/repo"
             }
+
+            // Artifacts properties - Set the properties that should be used by all artifacts
+            publications {
+                maven(MavenPublication) {
+                    groupId = "com.r3.conclave"
+                    version = conclave_graal_version
+                }
+            }
         }
     }
 }

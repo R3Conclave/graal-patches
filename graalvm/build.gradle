@@ -138,6 +138,15 @@ publishing {
                 version = getConclaveGraalVersion()
                 description = 'Graal distribution including SubstrateVM and tools'
             }
+
+            pom {
+                licenses {
+                    license {
+                        name = 'GNU General Public License v2.0'
+                        url = 'https://github.com/R3Conclave/graal-patches/blob/HEAD/LICENSE'
+                    }
+                }
+            }
         }
     }
 }

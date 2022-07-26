@@ -111,16 +111,11 @@ static Map<String, String> getEnvironmentVariables(String... envNames) {
 
 String getArtifactoryForPublication() {
     def url = "https://software.r3.com/artifactory/conclave-maven"
-    def conclaveGraal = getConclaveGraalVersion()
-    if (conclaveGraal.endsWith("-SNAPSHOT")) {
+    if (conclave_graal_version.endsWith("-SNAPSHOT")) {
         return url + "-dev"
     }
 
     return url + "-release"
-}
-
-String getConclaveGraalVersion() {
-    return "$graal_version-$conclave_version"
 }
 
 // Writes the current date and time to a file

@@ -135,7 +135,7 @@ publishing {
                 // Details about the artifact being published
                 groupId = "com.r3.conclave"
                 artifactId = "graalvm"
-                version = getConclaveGraalVersion()
+                version = conclave_graal_version
                 description = 'Graal distribution including SubstrateVM and tools'
             }
 

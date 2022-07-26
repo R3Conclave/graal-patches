@@ -44,7 +44,7 @@ publishing {
                 // Details about the artifact being published
                 groupId = "com.r3.conclave"
                 artifactId = "graal-sdk"
-                version = getConclaveGraalVersion()
+                version = conclave_graal_version
                 description = 'Graal SDK'
             }
 

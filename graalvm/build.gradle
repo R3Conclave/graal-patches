@@ -133,10 +133,17 @@ publishing {
                 builtBy(tarGraal)
 
                 // Details about the artifact being published
-                groupId = "com.r3.conclave"
                 artifactId = "graalvm"
-                version = "$graal_version-$conclave_version"
                 description = 'Graal distribution including SubstrateVM and tools'
+            }
+
+            pom {
+                licenses {
+                    license {
+                        name = 'GNU General Public License, version 2, with the Classpath Exception'
+                        url = 'https://github.com/R3Conclave/graal-patches/blob/HEAD/LICENSE'
+                    }
+                }
             }
         }
     }

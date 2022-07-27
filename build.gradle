@@ -16,8 +16,6 @@ allprojects {
         // Environment variables loaded from the system
         // Add any environment variable to the argument list if it needs to be accessible by Gradle
         environment = getEnvironmentVariables(
-                'OBLIVIUM_MAVEN_URL',
-                'OBLIVIUM_MAVEN_REPOSITORY',
                 'OBLIVIUM_MAVEN_USERNAME',
                 'OBLIVIUM_MAVEN_PASSWORD',
                 'OBLIVIUM_CONTAINER_REGISTRY_URL',
@@ -82,7 +80,7 @@ allprojects {
             // Artifactory repository
             maven {
                 name = "artifactory"
-                url = "${environment.OBLIVIUM_MAVEN_URL}/${environment.OBLIVIUM_MAVEN_REPOSITORY}"
+                url = getArtifactoryForPublication()
                 credentials {
                     username = environment.OBLIVIUM_MAVEN_USERNAME
                     password = environment.OBLIVIUM_MAVEN_PASSWORD
@@ -93,6 +91,14 @@ allprojects {
             maven {
                 name = "build"
                 url = "$buildDir/repo"
+            }
+
+            // Artifacts properties - Set the properties that should be used by all artifacts
+            publications {
+                maven(MavenPublication) {
+                    groupId = "com.r3.conclave"
+                    version = conclave_graal_version
+                }
             }
         }
     }
@@ -109,6 +115,11 @@ allprojects {
 // Value of the map: environment variable value
 static Map<String, String> getEnvironmentVariables(String... envNames) {
     return envNames.collectEntries {envName -> [(envName): System.getenv(envName)] }
+}
+
+String getArtifactoryForPublication() {
+    def repositoryName = conclave_graal_version.endsWith("-SNAPSHOT") ? "conclave-maven-dev" : "conclave-maven-release"
+    return "https://software.r3.com/artifactory/" + repositoryName
 }
 
 // Writes the current date and time to a file

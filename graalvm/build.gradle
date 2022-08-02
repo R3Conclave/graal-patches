@@ -5,6 +5,7 @@ ext {
     // Directories and files paths
     graalVMLatestDir = "$graalDir/vm/latest_graalvm/"
     graalVMTar = "$buildDir/distributions/graalvm.tar.gz"
+    graalVMDir = "" // This variable is set once the directory is created. This is because the name of the directory depends on the Graal version
 
     // These files are used as a dummy outputs in place of the graalvm repository directory.
     // This prevents buildGraal from re-triggering cloneAndPatchRepository.
@@ -46,7 +47,7 @@ ext {
  * - native-image-configure (native)
  * - js (native)
  */
-task buildGraal(type: Exec) {
+task buildGraal() {
     dependsOn cloneAndPatchGraal
 
     // Task details
@@ -64,17 +65,23 @@ task buildGraal(type: Exec) {
 
         assertDockerContainerIsBeingUsed()
 
-        workingDir "$graalDir/vm"
-
         // The --force-bash-launchers makes the build faster and use far less RAM by skipping the native-imaging of
         // some tools we don't use or care about. Without that flag the build can fail due to running out of RAM.
-        if (excludeDynamicLanguages != null) {
-        commandLine "${environment.MX_HOME}/mx", '--skip-libraries=polyglot', '--dynamicimports', '/substratevm',
-                '--exclude-components=nju,nic,llp,lg,gu,polynative,gvm,poly,nil,svml', '--force-bash-launchers=polybench', 'build'
-        } else {
-            commandLine "${System.getenv('MX_HOME')}/mx", '--skip-libraries=polyglot', '--dynamicimports', 'graalpython,graal-js,/substratevm',
-                   '--exclude-components=nju,nic,llp,lg,gu,polynative,gvm,poly,nil,svml', '--force-bash-launchers=python,js,polybench', 'build'
+        exec {
+            String dynamicImportsArgs = "/substratevm"
+            String forceBashLaunchersArgs = "polybench"
+
+            if (excludeDynamicLanguages == null) {
+                dynamicImportsArgs = "$dynamicImportsArgs,graalpython,graal-js"
+                forceBashLaunchersArgs = "$forceBashLaunchersArgs,python,js"
+            }
+
+            workingDir "$graalDir/vm"
+            commandLine "${System.getenv('MX_HOME')}/mx", "--skip-libraries=polyglot", "--dynamicimports", "$dynamicImportsArgs",
+                    "--exclude-components=nju,nic,llp,lg,gu,polynative,gvm,poly,nil,svml", "--force-bash-launchers=$forceBashLaunchersArgs", "build"
         }
+        graalVMDir = findGraalVMDir(graalVMLatestDir)
+        generatePlaceholderLibraries(graalVMDir)
     }
 
     doLast {
@@ -84,25 +91,13 @@ task buildGraal(type: Exec) {
     }
 }
 
-task getGraalBuildFolder(type: Exec) {
-    dependsOn buildGraal
-
-    inputs.files(graalBuildDummy)
-    standardOutput = new ByteArrayOutputStream()
-
-    commandLine 'ls', "$graalVMLatestDir"
-    doLast {
-        ext.graalVMDir = graalVMLatestDir + standardOutput.toString().replaceAll('\\r', '').replaceAll('\\n', '')
-    }
-}
-
 /**
  * The command line util `tar` is being used rather Gradle's Tar task due to
  * https://github.com/gradle/gradle/issues/3982, which describes symlinks being followed
  * rather than preserved. Graal fails to run with the resolved symlinks.
  */
 task tarGraal(type: Exec) {
-    dependsOn getGraalBuildFolder
+    dependsOn buildGraal
 
     // Task details
     group = 'Other'
@@ -113,7 +108,7 @@ task tarGraal(type: Exec) {
     outputs.file(graalVMTar)
 
     doFirst {
-        commandLine 'tar', 'czf', "$graalVMTar", '-C', getGraalBuildFolder.graalVMDir, '.'
+        commandLine 'tar', 'czf', graalVMTar, '-C', graalVMDir, '.'
     }
 }
 
@@ -146,5 +141,43 @@ publishing {
                 }
             }
         }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Helper functions
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Please do not call this function to get the GraalVMDir. Use the property GraalVMDir instead
+// This function should only be called once and as soon as the graalvm directory is created by the mx tool.
+// And it was created because the name of the directory changes between different Graal versions
+def findGraalVMDir(String graalVMLatestDir) {
+    String graalVMDir = ""
+    file(graalVMLatestDir).eachDirMatch(~/graalvm-.*/) {file -> graalVMDir=file.path }
+
+    assert !graalVMDir.isBlank() && !graalVMDir.isEmpty() : "Failed to find graalvm directory built by the mx tool"
+
+    return graalVMDir
+}
+
+/**
+ * SubstrateVM can add required native libraries during compilation based on parameters to
+ * native-image. For example, the inclusion of --enable-all-security-services results in native-image
+ * automatically including libstdc++.a during linking. We link against the SGX trusted runtime to
+ * satisfy the linker so to prevent multiply derived symbols we need to provide placeholder, empty
+ * implementations of any automatically linked library. This function populates the placeholderlibs/
+ * directory with these files and https://github.com/R3Conclave/conclave-sdk/blob/master/plugin-enclave-gradle/src/main/kotlin/com/r3/conclave/plugin/enclave/gradle/NativeImage.kt
+ * adds this directory to the link path
+ */
+def generatePlaceholderLibraries(String graalVMDir) {
+    assert !graalVMDir.isBlank() && !graalVMDir.isEmpty() : "GraalVMDir must not be empty"
+
+    exec {
+        String placeholderDir = graalVMDir + "/placeholderlibs/"
+
+        // Create the directory
+        mkdir placeholderDir
+
+        // Create an empty archive
+        commandLine 'ar', "cr", placeholderDir + "libstdc++.a"
     }
 }

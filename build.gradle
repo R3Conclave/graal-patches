@@ -113,15 +113,19 @@ static Map<String, String> getEnvironmentVariables(String... envNames) {
 }
 
 String getArtifactoryForPublication() {
-    def mavenDevRepositoryPath = 'conclave-maven-dev'
-    def mavenReleaseRepositoryPath = 'conclave-maven-release'
-    def useDevRepository = conclave_graal_version.endsWith("-SNAPSHOT") || conclave_graal_version.matches(/.+\-RC[0-9]+$/)
-    def repositoryPath = useDevRepository ? mavenDevRepositoryPath : mavenReleaseRepositoryPath
-    return "https://software.r3.com/artifactory/" + repositoryPath
+    String mavenRepo
+    if (conclave_graal_version.endsWith("-SNAPSHOT")) {
+        mavenRepo = "conclave-maven-dev"
+    } else if (conclave_graal_version.matches(/.+\-RC[0-9]+$/)) {
+        mavenRepo = "conclave-maven-unstable"
+    } else {
+        mavenRepo = "conclave-maven-stable"
+    }
+    return "https://software.r3.com/artifactory/" + mavenRepo
 }
 
 // Writes the current date and time to a file
-def writeDateToFile(String fileName) {
+static def writeDateToFile(String fileName) {
     new File(fileName).text = "${new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())}\n"
 }
 

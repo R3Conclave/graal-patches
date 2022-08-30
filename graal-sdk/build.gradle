@@ -1,15 +1,11 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////
 // Global variables
-////////////////////////////////////////////////////////////////////////////////////////////////////
 ext {
     // Directories and files paths
     graalSDKDir = "$graalDir/sdk"
     graalSDKJar = "$graalSDKDir/mxbuild/dists/graal-sdk.jar"
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
 // Tasks
-////////////////////////////////////////////////////////////////////////////////////////////////////
 task buildGraalSDK(type: Exec) {
     dependsOn cloneAndPatchGraal
 
@@ -26,16 +22,31 @@ task buildGraalSDK(type: Exec) {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allJava
+    classifier = 'sources'
+}
+
+task javadocJar(type: Jar) {
+    from javadoc
+    classifier = 'javadoc'
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 // Maven-publish - Configuration for publishing maven artifacts
-////////////////////////////////////////////////////////////////////////////////////////////////////
 publishing {
 
     // List of artifacts to publish
     publications {
 
-        // Publish the tar file that contains graal
+        // Publish the tar file that contains Graal
         maven(MavenPublication) {
+            artifact javadocJar
+            artifact sourcesJar
 
             // Artifact to be published
             artifact(graalSDKJar) {
@@ -50,7 +61,7 @@ publishing {
                 licenses {
                     license {
                         name = 'Universal Permissive License, Version 1.0'
-                        url = 'http://opensource.org/licenses/UPL'
+                        url = 'https://opensource.org/licenses/UPL'
                     }
                 }
             }

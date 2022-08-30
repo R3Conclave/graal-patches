@@ -1,31 +1,34 @@
 import java.text.SimpleDateFormat
 
+enum VersionType {
+    GA_RELEASE,
+    RELEASE_CANDIDATE,
+    SNAPSHOT
+}
+
+ext {
+    graalRevision = getGraalRevision()
+    project.logger.info("Graal revision: $graalRevision")
+
+    if (version.endsWith("-SNAPSHOT")) {
+        versionType = VersionType.SNAPSHOT
+    } else if (version.matches(/.+\-RC[0-9]+$/)) {
+        versionType = VersionType.RELEASE_CANDIDATE
+    } else {
+        versionType = VersionType.GA_RELEASE
+    }
+}
+
 allprojects {
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Load Gradle plugins
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
+    apply plugin: 'java'
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    apply from: rootProject.file("versions.gradle")
+
     // Global variables
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    apply from:  rootProject.file("versions.gradle")
-
     group = "com.r3.conclave"
     version = conclave_graal_version
 
     ext {
-
-        // Environment variables loaded from the system
-        // Add any environment variable to the argument list if it needs to be accessible by Gradle
-        environment = getEnvironmentVariables(
-                'OBLIVIUM_MAVEN_USERNAME',
-                'OBLIVIUM_MAVEN_PASSWORD',
-                'OBLIVIUM_CONTAINER_REGISTRY_URL',
-                'MX_HOME',
-                'DOCKER_CONTAINER_IS_RUNNING'
-        )
-
         // Directories and files paths
         tempDir = "${rootProject.buildDir}/tmp"
         graalDir = "$tempDir/graal"
@@ -35,19 +38,6 @@ allprojects {
         graalCloneDummy = "$tempDir/graal_cloned_time"
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Tasks
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    task clean(type: Delete) {
-
-        // Task details
-        group = 'Build'
-        description = 'Deletes the build directory.'
-
-        doFirst {
-            delete buildDir
-        }
-    }
 
     task cloneAndPatchGraal(type: Exec) {
 
@@ -72,11 +62,32 @@ allprojects {
             writeDateToFile(graalCloneDummy)
         }
     }
+}
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Maven-publish - Configuration for publishing maven artifacts
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+subprojects {
+    apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
+    apply plugin: 'signing'
+
+    signing {
+        // Signing is required for the publication of releases to Maven Central.
+        // As per Gradle Signing Plugin rules, "required = false" means that the artifacts
+        //   will only be signed if signatory credentials are configured (i.e. only in TeamCity).
+        //   The build will skip signing if the key is not available, which is what we want for local builds
+        required = false
+        def key = System.getenv("CONCLAVE_PUBLICATION_SIGNING_PRIVATE_KEY")
+        def password = System.getenv("CONCLAVE_PUBLICATION_SIGNING_PRIVATE_KEY_PASSWORD")
+        useInMemoryPgpKeys(key, password)
+        sign(project.publishing.publications)
+    }
+
     publishing {
+        publications {
+
+            maven(MavenPublication) {
+                addPomDetails(pom, project.name, getProjectDescription(project.name))
+            }
+        }
+
         // List of repositories where the artifact is published
         repositories {
 
@@ -85,8 +96,8 @@ allprojects {
                 name = "artifactory"
                 url = getArtifactoryForPublication()
                 credentials {
-                    username = environment.OBLIVIUM_MAVEN_USERNAME
-                    password = environment.OBLIVIUM_MAVEN_PASSWORD
+                    username = System.getenv("CONCLAVE_ARTIFACTORY_USERNAME")
+                    password = System.getenv("CONCLAVE_ARTIFACTORY_PASSWORD")
                 }
             }
 
@@ -95,6 +106,18 @@ allprojects {
                 name = "build"
                 url = "$buildDir/repo"
             }
+
+            //  This repository is used for publishing to Maven Central from TeamCity.
+            if (versionType == VersionType.GA_RELEASE) {
+                maven {
+                    name = "OSSRH"
+                    url = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
+                    credentials {
+                        username = System.getenv("CONCLAVE_OSSRH_USERNAME")
+                        password = System.getenv("CONCLAVE_OSSRH_PASSWORD")
+                    }
+                }
+            }
         }
     }
 }
@@ -102,16 +125,6 @@ allprojects {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Helper functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// The function loads the environments variables from the system
-// Input: List of all environment variables that should be loaded by Gradle
-// Output: A map with the environment variables that were requested
-// Key of the map: environment variable name
-// Value of the map: environment variable value
-static Map<String, String> getEnvironmentVariables(String... envNames) {
-    return envNames.collectEntries {envName -> [(envName): System.getenv(envName)] }
-}
-
 String getArtifactoryForPublication() {
     String mavenRepo
     if (conclave_graal_version.endsWith("-SNAPSHOT")) {
@@ -131,12 +144,61 @@ static def writeDateToFile(String fileName) {
 
 // Ensure that a given task is being run inside the provided container by throwing an exception
 // if that is not the case.
-def assertDockerContainerIsBeingUsed() {
-    if(environment.DOCKER_CONTAINER_IS_RUNNING != "TRUE") {
+static def assertDockerContainerIsBeingUsed() {
+
+    if(System.getenv("DOCKER_CONTAINER_IS_RUNNING") != "TRUE") {
         String message = "It was detected that the task is not being run inside the provided docker container.\n" +
                 "This might lead to unexpected errors if your system is not properly configured.\n" +
                 "Please consider running the task inside the provided docker container by running the script ./scripts/devenv_shell.sh first"
 
         throw new GradleException(message)
     }
+}
+
+
+static def getProjectDescription(String projectName) {
+
+    if (projectName == "graal-sdk") {
+        return 'Graal SDK'
+    } else if (projectName == "graalvm") {
+        return 'Graal VM'
+    } else {
+        throw new IllegalArgumentException("Developer error, wrong project name given as input. Project name: $projectName")
+    }
+}
+
+static def addPomDetails(MavenPom pom, String name, String description) {
+    pom.name = name
+    pom.description = description
+    pom.url = "https://github.com/R3Conclave/conclave-core-sdk"
+
+    //  Licenses for the POM sections are added in the build.gradle files of the subprojects
+
+    pom.developers {
+        developer {
+            name = 'Conclave Team'
+            email = "conclave@r3.com"
+            organization = 'R3 LLC'
+            organizationUrl = "https://www.r3.com"
+        }
+    }
+    pom.scm {
+        connection = "scm:git:git://github.com/R3Conclave/conclave-core-sdk.git"
+        developerConnection = "scm:git:ssh://github.com:R3Conclave/conclave-core-sdk.git"
+        url = "https://github.com/R3Conclave/conclave-core-sdk/tree/master"
+    }
+}
+
+String getGraalRevision() {
+    String graalRevision = ""
+
+    try {
+        // Get the id of the last commit from the current branch
+        graalRevision = "git rev-parse HEAD".execute().text.trim()
+    } catch (Exception ignored) {
+        logger.warn("Unable to get conclave revision. Git is unavailable in build environment")
+        graalRevision = "unknown"
+    }
+
+    return graalRevision
 }

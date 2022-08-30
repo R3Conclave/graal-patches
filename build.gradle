@@ -146,7 +146,7 @@ static def writeDateToFile(String fileName) {
 // if that is not the case.
 static def assertDockerContainerIsBeingUsed() {
 
-    if(System.getenv("DOCKER_CONTAINER_IS_RUNNING") != "TRUE") {
+    if (System.getenv("DOCKER_CONTAINER_IS_RUNNING") != "TRUE") {
         String message = "It was detected that the task is not being run inside the provided docker container.\n" +
                 "This might lead to unexpected errors if your system is not properly configured.\n" +
                 "Please consider running the task inside the provided docker container by running the script ./scripts/devenv_shell.sh first"

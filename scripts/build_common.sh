@@ -6,10 +6,6 @@ set -xeuo pipefail
 ## Configuration
 ###################################################################
 
-# Docker login interaction with the repository
-# You might get an error from docker about not being authorized to perform a certain action if you are not logged in
-docker login $OBLIVIUM_CONTAINER_REGISTRY_URL -u $OBLIVIUM_CONTAINER_REGISTRY_USERNAME -p $OBLIVIUM_CONTAINER_REGISTRY_PASSWORD
-
 code_host_dir=$PWD
 
 mkdir -p $HOME/.gradle
@@ -54,8 +50,8 @@ docker_dir_hash=$(find ./docker \( ! -regex '.*/\..*\|.*/root/.*' \) -type f -pr
 docker_image_tag=$(echo $docker_dir_hash-$graal_version | sha256sum | cut -d ' ' -f1)
 popd
 
-# Docker container images repository (This repo is usually Artifactory)
-container_image_repo=$OBLIVIUM_CONTAINER_REGISTRY_URL/com.r3.conclave
+# Docker container images repository
+container_image_repo=conclave-docker-dev.software.r3.com/com.r3.conclave
 
 # Docker container images
 container_image_graalvm_build=$container_image_repo/graalvm-build:$docker_image_tag
@@ -122,7 +118,7 @@ docker_opts=(\
     "-v" "${code_host_dir}:${code_host_dir}" \
     "-e" "GRADLE_USER_HOME=/gradle" \
     "-e" "GRADLE_OPTS=-Dorg.gradle.workers.max=$num_cpus" \
-    $(env | cut -f1 -d= | grep OBLIVIUM_ | sed 's/^OBLIVIUM_/-e OBLIVIUM_/') \
+    $(env | cut -f1 -d= | awk 'gsub(/^CONCLAVE_/, "-e CONCLAVE_")') \
     "-w" "$code_host_dir" \
 )
 

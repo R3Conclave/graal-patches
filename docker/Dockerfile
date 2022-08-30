@@ -34,10 +34,7 @@ RUN apt-get update -y && apt-get install -y \
 # For JVMCI you can search in the common.json file, for example:
 #   https://github.com/oracle/graal/blob/release/graal-vm/22.0/common.json
 # We are currently using labsjdk-ce-17 version.
-# Also, note that in order to apply such changes when building Graal locally,
-#   you need to avoid to download Graal from the Docker repository by setting
-#   "export DOCKER_IMAGE_PULL=0" in your ~/.oblivium_credentials.sh and
-#   rebuild your container from scratch.
+
 ENV HOME                /home
 ENV USER_HOME           ${HOME}
 ENV GRADLE_USER_HOME    ${HOME}/.gradle

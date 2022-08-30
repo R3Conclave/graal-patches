@@ -1,5 +1,5 @@
 ext {
     graal_version = '22.0.0.2'
     graal_commit_id = 'e7d7572e8'
-    conclave_graal_version = "$graal_version-1.3"
+    conclave_graal_version = "$graal_version-1.4-SNAPSHOT"
 }

@@ -22,16 +22,6 @@ task buildGraalSDK(type: Exec) {
     }
 }
 
-task sourcesJar(type: Jar) {
-    from sourceSets.main.allJava
-    classifier = 'sources'
-}
-
-task javadocJar(type: Jar) {
-    from javadoc
-    classifier = 'javadoc'
-}
-
 java {
     withJavadocJar()
     withSourcesJar()

@@ -170,7 +170,7 @@ static def getProjectDescription(String projectName) {
 static def addPomDetails(MavenPom pom, String name, String description) {
     pom.name = name
     pom.description = description
-    pom.url = "https://github.com/R3Conclave/conclave-core-sdk"
+    pom.url = "https://github.com/R3Conclave/graal-patches"
 
     //  Licenses for the POM sections are added in the build.gradle files of the subprojects
 
@@ -183,9 +183,9 @@ static def addPomDetails(MavenPom pom, String name, String description) {
         }
     }
     pom.scm {
-        connection = "scm:git:git://github.com/R3Conclave/conclave-core-sdk.git"
-        developerConnection = "scm:git:ssh://github.com:R3Conclave/conclave-core-sdk.git"
-        url = "https://github.com/R3Conclave/conclave-core-sdk/tree/master"
+        connection = "scm:git:git://github.com/R3Conclave/graal-patches.git"
+        developerConnection = "scm:git:ssh://github.com:R3Conclave/graal-patches.git"
+        url = "https://github.com/R3Conclave/graal-patches/tree/master"
     }
 }
 

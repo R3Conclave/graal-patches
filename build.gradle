@@ -1,20 +1,15 @@
 import java.text.SimpleDateFormat
 
-enum VersionType {
-    GA_RELEASE,
-    RELEASE_CANDIDATE,
-    SNAPSHOT
-}
+
+apply from: rootProject.file("versions.gradle")
 
 ext {
-    apply from: rootProject.file("versions.gradle")
-
     // Global variables
     group = "com.r3.conclave"
     version = conclave_graal_version
-
     graalRevision = getGraalRevision()
     versionType = getVersionType(version)
+
     logger.info("Graal revision: $graalRevision")
     logger.info("Conclave Graal revision: $version, type: $versionType")
 
@@ -26,7 +21,6 @@ ext {
     // This prevents buildGraal from re-triggering cloneAndPatchRepository.
     graalCloneDummy = "$tempDir/graal_cloned_time"
 }
-
 
 subprojects {
     apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
@@ -176,6 +170,12 @@ static def addPomDetails(MavenPom pom, String name, String description) {
         developerConnection = "scm:git:ssh://github.com:R3Conclave/graal-patches.git"
         url = "https://github.com/R3Conclave/graal-patches/tree/master"
     }
+}
+
+enum VersionType {
+    GA_RELEASE,
+    RELEASE_CANDIDATE,
+    SNAPSHOT
 }
 
 static def getVersionType(String version) {

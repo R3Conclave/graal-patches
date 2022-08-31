@@ -1,5 +1,7 @@
 import java.text.SimpleDateFormat
 
+apply from: rootProject.file("versions.gradle")
+
 enum VersionType {
     GA_RELEASE,
     RELEASE_CANDIDATE,
@@ -8,21 +10,19 @@ enum VersionType {
 
 ext {
     graalRevision = getGraalRevision()
-    project.logger.info("Graal revision: $graalRevision")
 
-    if (version.endsWith("-SNAPSHOT")) {
+    if (conclave_graal_version.endsWith("-SNAPSHOT")) {
         versionType = VersionType.SNAPSHOT
-    } else if (version.matches(/.+\-RC[0-9]+$/)) {
+    } else if (conclave_graal_version.matches(/.+\-RC[0-9]+$/)) {
         versionType = VersionType.RELEASE_CANDIDATE
     } else {
         versionType = VersionType.GA_RELEASE
     }
+    logger.info("Conclave Graal revision: $conclave_graal_version, type $versionType")
 }
 
 allprojects {
     apply plugin: 'java'
-
-    apply from: rootProject.file("versions.gradle")
 
     // Global variables
     group = "com.r3.conclave"
@@ -190,7 +190,7 @@ static def addPomDetails(MavenPom pom, String name, String description) {
 }
 
 String getGraalRevision() {
-    String graalRevision = ""
+    String graalRevision
 
     try {
         // Get the id of the last commit from the current branch

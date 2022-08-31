@@ -1,7 +1,5 @@
 import java.text.SimpleDateFormat
 
-apply from: rootProject.file("versions.gradle")
-
 enum VersionType {
     GA_RELEASE,
     RELEASE_CANDIDATE,
@@ -11,14 +9,15 @@ enum VersionType {
 allprojects {
     apply plugin: 'java'
 
-    ext {
-        // Global variables
-        group = "com.r3.conclave"
-        version = conclave_graal_version
+    apply from: rootProject.file("versions.gradle")
 
+    // Global variables
+    group = "com.r3.conclave"
+    version = conclave_graal_version
+
+    ext {
         graalRevision = getGraalRevision()
         versionType = getVersionType(version)
-
         logger.info("Graal revision: $graalRevision")
         logger.info("Conclave Graal revision: $version, type: $versionType")
 

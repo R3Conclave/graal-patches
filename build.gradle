@@ -1,11 +1,14 @@
 import java.text.SimpleDateFormat
 
-
 apply from: rootProject.file("versions.gradle")
+
+allprojects {
+    group = "com.r3.conclave"
+    version = conclave_graal_version
+}
 
 ext {
     // Global variables
-    version = conclave_graal_version
     graalRevision = getGraalRevision()
     versionType = getVersionType(version)
 
@@ -25,9 +28,6 @@ subprojects {
     apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
     apply plugin: 'signing'
     apply plugin: 'java'
-
-    group = "com.r3.conclave"
-    version = rootProject.ext.version
 
     task cloneAndPatchGraal(type: Exec) {
 

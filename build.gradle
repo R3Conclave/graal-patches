@@ -1,12 +1,14 @@
 import java.text.SimpleDateFormat
 
-
 apply from: rootProject.file("versions.gradle")
+
+allprojects {
+    group = "com.r3.conclave"
+    version = conclave_graal_version
+}
 
 ext {
     // Global variables
-    group = "com.r3.conclave"
-    version = conclave_graal_version
     graalRevision = getGraalRevision()
     versionType = getVersionType(version)
 

@@ -6,30 +6,32 @@ enum VersionType {
     SNAPSHOT
 }
 
-allprojects {
-    apply plugin: 'java'
-
+ext {
     apply from: rootProject.file("versions.gradle")
 
     // Global variables
     group = "com.r3.conclave"
     version = conclave_graal_version
 
-    ext {
-        graalRevision = getGraalRevision()
-        versionType = getVersionType(version)
-        logger.info("Graal revision: $graalRevision")
-        logger.info("Conclave Graal revision: $version, type: $versionType")
+    graalRevision = getGraalRevision()
+    versionType = getVersionType(version)
+    logger.info("Graal revision: $graalRevision")
+    logger.info("Conclave Graal revision: $version, type: $versionType")
 
-        // Directories and files paths
-        tempDir = "${rootProject.buildDir}/tmp"
-        graalDir = "$tempDir/graal"
+    // Directories and files paths
+    tempDir = "${rootProject.buildDir}/tmp"
+    graalDir = "$tempDir/graal"
 
-        // These files are used as a dummy outputs in place of the graalvm repository directory.
-        // This prevents buildGraal from re-triggering cloneAndPatchRepository.
-        graalCloneDummy = "$tempDir/graal_cloned_time"
-    }
+    // This file is used as a dummy output in place of the graalvm repository directory.
+    // This prevents buildGraal from re-triggering cloneAndPatchRepository.
+    graalCloneDummy = "$tempDir/graal_cloned_time"
+}
 
+
+subprojects {
+    apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
+    apply plugin: 'signing'
+    apply plugin: 'java'
 
     task cloneAndPatchGraal(type: Exec) {
 
@@ -40,8 +42,8 @@ allprojects {
         def patchingScript = "${rootProject.projectDir}/scripts/cloneAndPatch.sh"
         def graalPatch = "${rootProject.projectDir}/patches/graal.patch"
 
-        inputs.files("$patchingScript", "$graalPatch")
-        outputs.files("$graalCloneDummy")
+        inputs.files(patchingScript, graalPatch)
+        outputs.files(graalCloneDummy)
 
         doFirst {
             mkdir tempDir
@@ -54,11 +56,6 @@ allprojects {
             writeDateToFile(graalCloneDummy)
         }
     }
-}
-
-subprojects {
-    apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
-    apply plugin: 'signing'
 
     signing {
         // Signing is required for the publication of releases to Maven Central.

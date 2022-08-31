@@ -1,43 +1,31 @@
 import java.text.SimpleDateFormat
 
-enum VersionType {
-    GA_RELEASE,
-    RELEASE_CANDIDATE,
-    SNAPSHOT
-}
+
+apply from: rootProject.file("versions.gradle")
 
 ext {
-    graalRevision = getGraalRevision()
-    project.logger.info("Graal revision: $graalRevision")
-
-    if (version.endsWith("-SNAPSHOT")) {
-        versionType = VersionType.SNAPSHOT
-    } else if (version.matches(/.+\-RC[0-9]+$/)) {
-        versionType = VersionType.RELEASE_CANDIDATE
-    } else {
-        versionType = VersionType.GA_RELEASE
-    }
-}
-
-allprojects {
-    apply plugin: 'java'
-
-    apply from: rootProject.file("versions.gradle")
-
     // Global variables
     group = "com.r3.conclave"
     version = conclave_graal_version
+    graalRevision = getGraalRevision()
+    versionType = getVersionType(version)
 
-    ext {
-        // Directories and files paths
-        tempDir = "${rootProject.buildDir}/tmp"
-        graalDir = "$tempDir/graal"
+    logger.info("Graal revision: $graalRevision")
+    logger.info("Conclave Graal revision: $version, type: $versionType")
 
-        // These files are used as a dummy outputs in place of the graalvm repository directory.
-        // This prevents buildGraal from re-triggering cloneAndPatchRepository.
-        graalCloneDummy = "$tempDir/graal_cloned_time"
-    }
+    // Directories and files paths
+    tempDir = "${rootProject.buildDir}/tmp"
+    graalDir = "$tempDir/graal"
 
+    // This file is used as a dummy output in place of the graalvm repository directory.
+    // This prevents buildGraal from re-triggering cloneAndPatchRepository.
+    graalCloneDummy = "$tempDir/graal_cloned_time"
+}
+
+subprojects {
+    apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
+    apply plugin: 'signing'
+    apply plugin: 'java'
 
     task cloneAndPatchGraal(type: Exec) {
 
@@ -48,8 +36,8 @@ allprojects {
         def patchingScript = "${rootProject.projectDir}/scripts/cloneAndPatch.sh"
         def graalPatch = "${rootProject.projectDir}/patches/graal.patch"
 
-        inputs.files("$patchingScript", "$graalPatch")
-        outputs.files("$graalCloneDummy")
+        inputs.files(patchingScript, graalPatch)
+        outputs.files(graalCloneDummy)
 
         doFirst {
             mkdir tempDir
@@ -62,11 +50,6 @@ allprojects {
             writeDateToFile(graalCloneDummy)
         }
     }
-}
-
-subprojects {
-    apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
-    apply plugin: 'signing'
 
     signing {
         // Signing is required for the publication of releases to Maven Central.
@@ -189,8 +172,27 @@ static def addPomDetails(MavenPom pom, String name, String description) {
     }
 }
 
+enum VersionType {
+    GA_RELEASE,
+    RELEASE_CANDIDATE,
+    SNAPSHOT
+}
+
+static def getVersionType(String version) {
+    VersionType versionType
+
+    if (version.endsWith("-SNAPSHOT")) {
+        versionType = VersionType.SNAPSHOT
+    } else if (version.matches(/.+\-RC[0-9]+$/)) {
+        versionType = VersionType.RELEASE_CANDIDATE
+    } else {
+        versionType = VersionType.GA_RELEASE
+    }
+    return versionType
+}
+
 String getGraalRevision() {
-    String graalRevision = ""
+    String graalRevision
 
     try {
         // Get the id of the last commit from the current branch

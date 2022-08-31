@@ -8,27 +8,20 @@ enum VersionType {
     SNAPSHOT
 }
 
-ext {
-    graalRevision = getGraalRevision()
-
-    if (conclave_graal_version.endsWith("-SNAPSHOT")) {
-        versionType = VersionType.SNAPSHOT
-    } else if (conclave_graal_version.matches(/.+\-RC[0-9]+$/)) {
-        versionType = VersionType.RELEASE_CANDIDATE
-    } else {
-        versionType = VersionType.GA_RELEASE
-    }
-    logger.info("Conclave Graal revision: $conclave_graal_version, type $versionType")
-}
-
 allprojects {
     apply plugin: 'java'
 
-    // Global variables
-    group = "com.r3.conclave"
-    version = conclave_graal_version
-
     ext {
+        // Global variables
+        group = "com.r3.conclave"
+        version = conclave_graal_version
+
+        graalRevision = getGraalRevision()
+        versionType = getVersionType(version)
+
+        logger.info("Graal revision: $graalRevision")
+        logger.info("Conclave Graal revision: $version, type: $versionType")
+
         // Directories and files paths
         tempDir = "${rootProject.buildDir}/tmp"
         graalDir = "$tempDir/graal"
@@ -187,6 +180,19 @@ static def addPomDetails(MavenPom pom, String name, String description) {
         developerConnection = "scm:git:ssh://github.com:R3Conclave/graal-patches.git"
         url = "https://github.com/R3Conclave/graal-patches/tree/master"
     }
+}
+
+static def getVersionType(String version) {
+    VersionType versionType
+
+    if (version.endsWith("-SNAPSHOT")) {
+        versionType = VersionType.SNAPSHOT
+    } else if (version.matches(/.+\-RC[0-9]+$/)) {
+        versionType = VersionType.RELEASE_CANDIDATE
+    } else {
+        versionType = VersionType.GA_RELEASE
+    }
+    return versionType
 }
 
 String getGraalRevision() {

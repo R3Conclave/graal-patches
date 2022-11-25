@@ -1,30 +1,31 @@
 diff --git a/substratevm/src/com.oracle.svm.core.posix/src/com/oracle/svm/core/posix/thread/PosixJavaThreads.java b/substratevm/src/com.oracle.svm.core.posix/src/com/oracle/svm/core/posix/thread/PosixJavaThreads.java
-index 3bfc5210c..73900cda8 100644
+index 3bfc5210c..1d401f463 100644
 --- a/substratevm/src/com.oracle.svm.core.posix/src/com/oracle/svm/core/posix/thread/PosixJavaThreads.java
 +++ b/substratevm/src/com.oracle.svm.core.posix/src/com/oracle/svm/core/posix/thread/PosixJavaThreads.java
-@@ -109,9 +109,13 @@ public final class PosixJavaThreads extends JavaThreads {
+@@ -109,9 +109,14 @@ public final class PosixJavaThreads extends JavaThreads {
          prepareStartData(thread, startData);
- 
+
          Pthread.pthread_tPointer newThread = StackValue.get(Pthread.pthread_tPointer.class);
 -        PosixUtils.checkStatusIs0(
 -                        Pthread.pthread_create(newThread, attributes, PosixJavaThreads.pthreadStartRoutine.getFunctionPointer(), startData),
 -                        "PosixJavaThreads.start0: pthread_create");
 +        int status = Pthread.pthread_create(newThread, attributes, PosixJavaThreads.pthreadStartRoutine.getFunctionPointer(), startData);
 +        if (status == 11) {
-+            System.err.println("Oh no! Everything is about to go to shit!");
-+            PosixUtils.checkStatusIs0(status, "PosixJavaThreads.start0: pthread_create con-360 EAGAIN :)");
++            throw new Error("The enclave ran out of TCS slots when calling from a new thread into the enclave. " +
++                    "Please either increase the 'maxThreads' value in your enclave configuration or use fewer " +
++                    "threads inside the enclave.");
 +        } else {
-+            PosixUtils.checkStatusIs0(status, "PosixJavaThreads.start0: pthread_create con-360");
++            PosixUtils.checkStatusIs0(status, "PosixJavaThreads.start0: pthread_create");
 +        }
          setPthreadIdentifier(thread, newThread.read());
          Pthread.pthread_attr_destroy(attributes);
      }
 diff --git a/substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/SubstrateOptions.java b/substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/SubstrateOptions.java
-index fe491e0b6..49d029d1e 100644
+index 37a4551..b155ed4 100644
 --- a/substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/SubstrateOptions.java
 +++ b/substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/SubstrateOptions.java
-@@ -451,6 +451,18 @@ public class SubstrateOptions {
-     @Option(help = "Provide java.lang.Terminator exit handlers", type = User)//
+@@ -420,6 +420,18 @@ public class SubstrateOptions {
+     @Option(help = "Provide java.lang.Terminator exit handlers for executable images", type = User)//
      public static final HostedOptionKey<Boolean> InstallExitHandlers = new HostedOptionKey<>(false);
  
 +    @Option(help = "Use static linking", type = OptionType.Expert)
@@ -43,10 +44,10 @@ index fe491e0b6..49d029d1e 100644
      public static final HostedOptionKey<Boolean> DetectUserDirectoriesInImageHeap = new HostedOptionKey<>(false);
  
 diff --git a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/c/NativeLibraries.java b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/c/NativeLibraries.java
-index 32a1d9db5..fe23f3482 100644
+index d9b2596..e11730c 100644
 --- a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/c/NativeLibraries.java
 +++ b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/c/NativeLibraries.java
-@@ -612,10 +612,12 @@ public final class NativeLibraries {
+@@ -608,10 +608,12 @@ public final class NativeLibraries {
              return false;
          }
          for (CLibrary lib : annotated) {
@@ -64,10 +65,10 @@ index 32a1d9db5..fe23f3482 100644
          }
          annotated.clear();
 diff --git a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/NativeImageViaCC.java b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/NativeImageViaCC.java
-index 577e4e06f..7fec88a9f 100644
+index 92e7346..d838ff7 100644
 --- a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/NativeImageViaCC.java
 +++ b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/NativeImageViaCC.java
-@@ -113,8 +113,10 @@ public abstract class NativeImageViaCC extends NativeImage {
+@@ -125,8 +125,10 @@ public abstract class NativeImageViaCC extends NativeImage {
                      additionalPreOptions.add("-Wl,--dynamic-list");
                      additionalPreOptions.add("-Wl," + exportedSymbolsPath.toAbsolutePath());
  
@@ -80,7 +81,7 @@ index 577e4e06f..7fec88a9f 100644
                  } catch (IOException e) {
                      VMError.shouldNotReachHere();
                  }
-@@ -143,7 +145,9 @@ public abstract class NativeImageViaCC extends NativeImage {
+@@ -155,7 +157,9 @@ public abstract class NativeImageViaCC extends NativeImage {
                      }
                      break;
                  case SHARED_LIBRARY:
@@ -92,7 +93,7 @@ index 577e4e06f..7fec88a9f 100644
                  default:
                      VMError.shouldNotReachHere();
 diff --git a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/sources/SourceCache.java b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/sources/SourceCache.java
-index db79cf0e7..76fed2943 100644
+index 8fcbce1..305b9ec 100644
 --- a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/sources/SourceCache.java
 +++ b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/sources/SourceCache.java
 @@ -313,7 +313,7 @@ public class SourceCache {
@@ -105,11 +106,11 @@ index db79cf0e7..76fed2943 100644
                  if (moduleName.equals(specialRootModule)) {
                      for (Path srcRoot : specialSrcRoots.get(specialRootModule)) {
 diff --git a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/jdk/JNIRegistrationAwt.java b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/jdk/JNIRegistrationAwt.java
-index 3586b1225..f75586d90 100644
+index dd43417..0ae578e 100644
 --- a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/jdk/JNIRegistrationAwt.java
 +++ b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/jdk/JNIRegistrationAwt.java
-@@ -49,7 +49,7 @@ import java.awt.GraphicsEnvironment;
- import java.util.Optional;
+@@ -42,7 +42,7 @@ import org.graalvm.nativeimage.impl.InternalPlatform;
+ import java.awt.GraphicsEnvironment;
  
  @Platforms({InternalPlatform.PLATFORM_JNI.class})
 -@AutomaticFeature
@@ -118,18 +119,14 @@ index 3586b1225..f75586d90 100644
  public class JNIRegistrationAwt extends JNIRegistrationUtil implements Feature {
  
 diff --git a/substratevm/src/com.oracle.svm.jni/src/com/oracle/svm/jni/JNILibraryInitializer.java b/substratevm/src/com.oracle.svm.jni/src/com/oracle/svm/jni/JNILibraryInitializer.java
-index 9ba751fe7..ea27839e4 100644
+index 2e01394..7630aed 100644
 --- a/substratevm/src/com.oracle.svm.jni/src/com/oracle/svm/jni/JNILibraryInitializer.java
 +++ b/substratevm/src/com.oracle.svm.jni/src/com/oracle/svm/jni/JNILibraryInitializer.java
-@@ -50,6 +50,7 @@ import com.oracle.svm.core.jdk.PlatformNativeLibrarySupport;
- import com.oracle.svm.core.util.ImageHeapMap;
+@@ -51,2 +51,3 @@ import com.oracle.svm.core.jdk.NativeLibrarySupport;
  import com.oracle.svm.jni.functions.JNIFunctionTables;
  import com.oracle.svm.jni.nativeapi.JNIJavaVM;
 +import com.oracle.svm.core.SubstrateOptions;
- 
- interface JNIOnLoadFunctionPointer extends CFunctionPointer {
-     @InvokeCFunctionPointer
-@@ -113,6 +114,10 @@ public class JNILibraryInitializer implements NativeLibrarySupport.LibraryInitia
+@@ -113,6 +113,10 @@ public class JNILibraryInitializer implements NativeLibrarySupport.LibraryInitia
  
      @Override
      public void initialize(PlatformNativeLibrarySupport.NativeLibrary lib) {
@@ -141,13 +138,13 @@ index 9ba751fe7..ea27839e4 100644
          PointerBase onLoadFunction;
          if (lib.isBuiltin()) {
 diff --git a/substratevm/src/com.oracle.svm.native.libchelper/src/cpuid.c b/substratevm/src/com.oracle.svm.native.libchelper/src/cpuid.c
-index 1c63fe3ae..bf46344e5 100644
+index 5656dec..1e39f62 100644
 --- a/substratevm/src/com.oracle.svm.native.libchelper/src/cpuid.c
 +++ b/substratevm/src/com.oracle.svm.native.libchelper/src/cpuid.c
-@@ -519,6 +519,15 @@ static void set_cpufeatures(CPUFeatures *features, CpuidInfo *_cpuid_info)
-   }
- }
- 
+@@ -110,6 +110,15 @@ int get_cpuid (unsigned int leaf, unsigned int *eax, unsigned int *ebx, unsigned
+ #define bit_SHA_compat           0x20000000
+ #define bit_FMA_compat           0x00001000
+
 +/*
 + * CPUID is not available inside an SGX enclave.
 + * If a clean method that we could use to determine whether or not we were inside
@@ -163,7 +160,7 @@ index 1c63fe3ae..bf46344e5 100644
 @@ -528,6 +537,24 @@ static void set_cpufeatures(CPUFeatures *features, CpuidInfo *_cpuid_info)
  void determineCPUFeatures(CPUFeatures *features)
  {
- 
+
 +  // Return a minimal hard coded set of features
 +  // TODO: Find a way to safely perform proper feature detection. Alternatively, find a way to
 +  // determine if we are in an enclave and steer feature detection appropriately.
@@ -182,6 +179,7 @@ index 1c63fe3ae..bf46344e5 100644
 +
 +    return;
 +  }
- 
+
    CpuidInfo cpuid_info_data = {0};
    CpuidInfo *_cpuid_info = &cpuid_info_data;
+

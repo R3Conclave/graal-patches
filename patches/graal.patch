@@ -1,0 +1,187 @@
+diff --git a/substratevm/src/com.oracle.svm.core.posix/src/com/oracle/svm/core/posix/thread/PosixJavaThreads.java b/substratevm/src/com.oracle.svm.core.posix/src/com/oracle/svm/core/posix/thread/PosixJavaThreads.java
+index 3bfc5210c..73900cda8 100644
+--- a/substratevm/src/com.oracle.svm.core.posix/src/com/oracle/svm/core/posix/thread/PosixJavaThreads.java
++++ b/substratevm/src/com.oracle.svm.core.posix/src/com/oracle/svm/core/posix/thread/PosixJavaThreads.java
+@@ -109,9 +109,13 @@ public final class PosixJavaThreads extends JavaThreads {
+         prepareStartData(thread, startData);
+ 
+         Pthread.pthread_tPointer newThread = StackValue.get(Pthread.pthread_tPointer.class);
+-        PosixUtils.checkStatusIs0(
+-                        Pthread.pthread_create(newThread, attributes, PosixJavaThreads.pthreadStartRoutine.getFunctionPointer(), startData),
+-                        "PosixJavaThreads.start0: pthread_create");
++        int status = Pthread.pthread_create(newThread, attributes, PosixJavaThreads.pthreadStartRoutine.getFunctionPointer(), startData);
++        if (status == 11) {
++            System.err.println("Oh no! Everything is about to go to shit!");
++            PosixUtils.checkStatusIs0(status, "PosixJavaThreads.start0: pthread_create con-360 EAGAIN :)");
++        } else {
++            PosixUtils.checkStatusIs0(status, "PosixJavaThreads.start0: pthread_create con-360");
++        }
+         setPthreadIdentifier(thread, newThread.read());
+         Pthread.pthread_attr_destroy(attributes);
+     }
+diff --git a/substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/SubstrateOptions.java b/substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/SubstrateOptions.java
+index fe491e0b6..49d029d1e 100644
+--- a/substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/SubstrateOptions.java
++++ b/substratevm/src/com.oracle.svm.core/src/com/oracle/svm/core/SubstrateOptions.java
+@@ -451,6 +451,18 @@ public class SubstrateOptions {
+     @Option(help = "Provide java.lang.Terminator exit handlers", type = User)//
+     public static final HostedOptionKey<Boolean> InstallExitHandlers = new HostedOptionKey<>(false);
+ 
++    @Option(help = "Use static linking", type = OptionType.Expert)
++    public static final HostedOptionKey<Boolean> UseStaticLinking = new HostedOptionKey<>(false);
++
++    @Option(help = "Export symbols in linked static libraries", type = OptionType.Expert)
++    public static final HostedOptionKey<Boolean> ExportStaticSymbols = new HostedOptionKey<>(false);
++
++    @Option(help = "Default libraries to be excluded by the linker (list of comma-separated library names, i.e., dl,pthreads)", type = OptionType.Expert)
++    public static final HostedOptionKey<LocatableMultiOptionValue.Strings> ExcludeLibraries = new HostedOptionKey<>(new LocatableMultiOptionValue.Strings());
++
++    @Option(help = "Exclude loading net library", type = OptionType.Expert)
++    public static final HostedOptionKey<Boolean> ExcludeLoadingNetwork = new HostedOptionKey<>(false);
++        
+     @Option(help = "When set to true, the image generator verifies that the image heap does not contain a home directory as a substring", type = User)//
+     public static final HostedOptionKey<Boolean> DetectUserDirectoriesInImageHeap = new HostedOptionKey<>(false);
+ 
+diff --git a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/c/NativeLibraries.java b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/c/NativeLibraries.java
+index 32a1d9db5..fe23f3482 100644
+--- a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/c/NativeLibraries.java
++++ b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/c/NativeLibraries.java
+@@ -612,10 +612,12 @@ public final class NativeLibraries {
+             return false;
+         }
+         for (CLibrary lib : annotated) {
+-            if (lib.requireStatic()) {
+-                addStaticNonJniLibrary(lib.value(), lib.dependsOn());
+-            } else {
+-                addDynamicNonJniLibrary(lib.value());
++            if (!OptionUtils.flatten(",", SubstrateOptions.ExcludeLibraries.getValue()).contains(lib.value())) {
++                if (lib.requireStatic()) {
++                    addStaticNonJniLibrary(lib.value(), lib.dependsOn());
++                } else {
++                    addDynamicNonJniLibrary(lib.value());
++                }
+             }
+         }
+         annotated.clear();
+diff --git a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/NativeImageViaCC.java b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/NativeImageViaCC.java
+index 577e4e06f..7fec88a9f 100644
+--- a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/NativeImageViaCC.java
++++ b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/NativeImageViaCC.java
+@@ -113,8 +113,10 @@ public abstract class NativeImageViaCC extends NativeImage {
+                     additionalPreOptions.add("-Wl,--dynamic-list");
+                     additionalPreOptions.add("-Wl," + exportedSymbolsPath.toAbsolutePath());
+ 
+-                    // Drop global symbols in linked static libraries: not covered by --dynamic-list
+-                    additionalPreOptions.add("-Wl,--exclude-libs,ALL");
++                    if (!SubstrateOptions.ExportStaticSymbols.getValue()) {
++                        // Drop global symbols in linked static libraries: not covered by --dynamic-list
++                        additionalPreOptions.add("-Wl,--exclude-libs,ALL");
++                    }
+                 } catch (IOException e) {
+                     VMError.shouldNotReachHere();
+                 }
+@@ -143,7 +145,9 @@ public abstract class NativeImageViaCC extends NativeImage {
+                     }
+                     break;
+                 case SHARED_LIBRARY:
+-                    cmd.add("-shared");
++                    if (!SubstrateOptions.UseStaticLinking.getValue()) {
++                        cmd.add("-shared");
++                    }
+                     break;
+                 default:
+                     VMError.shouldNotReachHere();
+diff --git a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/sources/SourceCache.java b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/sources/SourceCache.java
+index db79cf0e7..76fed2943 100644
+--- a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/sources/SourceCache.java
++++ b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/image/sources/SourceCache.java
+@@ -313,7 +313,7 @@ public class SourceCache {
+             moduleName = ModuleSupport.getModuleName(clazz);
+         }
+ 
+-        if (moduleName != null) {
++        if (moduleName != null && !specialSrcRoots.isEmpty()) {
+             for (String specialRootModule : specialRootModules) {
+                 if (moduleName.equals(specialRootModule)) {
+                     for (Path srcRoot : specialSrcRoots.get(specialRootModule)) {
+diff --git a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/jdk/JNIRegistrationAwt.java b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/jdk/JNIRegistrationAwt.java
+index 3586b1225..f75586d90 100644
+--- a/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/jdk/JNIRegistrationAwt.java
++++ b/substratevm/src/com.oracle.svm.hosted/src/com/oracle/svm/hosted/jdk/JNIRegistrationAwt.java
+@@ -49,7 +49,7 @@ import java.awt.GraphicsEnvironment;
+ import java.util.Optional;
+ 
+ @Platforms({InternalPlatform.PLATFORM_JNI.class})
+-@AutomaticFeature
++//@AutomaticFeature
+ @SuppressWarnings({"unused"})
+ public class JNIRegistrationAwt extends JNIRegistrationUtil implements Feature {
+ 
+diff --git a/substratevm/src/com.oracle.svm.jni/src/com/oracle/svm/jni/JNILibraryInitializer.java b/substratevm/src/com.oracle.svm.jni/src/com/oracle/svm/jni/JNILibraryInitializer.java
+index 9ba751fe7..ea27839e4 100644
+--- a/substratevm/src/com.oracle.svm.jni/src/com/oracle/svm/jni/JNILibraryInitializer.java
++++ b/substratevm/src/com.oracle.svm.jni/src/com/oracle/svm/jni/JNILibraryInitializer.java
+@@ -50,6 +50,7 @@ import com.oracle.svm.core.jdk.PlatformNativeLibrarySupport;
+ import com.oracle.svm.core.util.ImageHeapMap;
+ import com.oracle.svm.jni.functions.JNIFunctionTables;
+ import com.oracle.svm.jni.nativeapi.JNIJavaVM;
++import com.oracle.svm.core.SubstrateOptions;
+ 
+ interface JNIOnLoadFunctionPointer extends CFunctionPointer {
+     @InvokeCFunctionPointer
+@@ -113,6 +114,10 @@ public class JNILibraryInitializer implements NativeLibrarySupport.LibraryInitia
+ 
+     @Override
+     public void initialize(PlatformNativeLibrarySupport.NativeLibrary lib) {
++        if (SubstrateOptions.ExcludeLoadingNetwork.hasBeenSet() && SubstrateOptions.ExcludeLoadingNetwork.getValue()) {
++            return;
++        }
++
+         String libName = lib.getCanonicalIdentifier();
+         PointerBase onLoadFunction;
+         if (lib.isBuiltin()) {
+diff --git a/substratevm/src/com.oracle.svm.native.libchelper/src/cpuid.c b/substratevm/src/com.oracle.svm.native.libchelper/src/cpuid.c
+index 1c63fe3ae..bf46344e5 100644
+--- a/substratevm/src/com.oracle.svm.native.libchelper/src/cpuid.c
++++ b/substratevm/src/com.oracle.svm.native.libchelper/src/cpuid.c
+@@ -519,6 +519,15 @@ static void set_cpufeatures(CPUFeatures *features, CpuidInfo *_cpuid_info)
+   }
+ }
+ 
++/*
++ * CPUID is not available inside an SGX enclave.
++ * If a clean method that we could use to determine whether or not we were inside
++ * an enclave, we could use this to steer feature detection.
++ */
++int cpuid_available() {
++  return 0;
++}
++
+ /*
+ * Extracts the CPU features by using cpuid.h.
+ * Note: This function is implemented in C as cpuid.h
+@@ -528,6 +537,24 @@ static void set_cpufeatures(CPUFeatures *features, CpuidInfo *_cpuid_info)
+ void determineCPUFeatures(CPUFeatures *features)
+ {
+ 
++  // Return a minimal hard coded set of features
++  // TODO: Find a way to safely perform proper feature detection. Alternatively, find a way to
++  // determine if we are in an enclave and steer feature detection appropriately.
++  if (!cpuid_available()) {
++
++    // Required by graalvm (will not work without)
++    features->fSSE = 1;
++    features->fSSE2 = 1;
++
++    // Additional features supported by all processors that also support the above (may as well include them!)
++    features->fCX8 = 1;
++    features->fCMOV = 1;
++    features->fFXSR = 1;
++    features->fMMX = 1;
++    features->fTSC = 1;
++
++    return;
++  }
+ 
+   CpuidInfo cpuid_info_data = {0};
+   CpuidInfo *_cpuid_info = &cpuid_info_data;

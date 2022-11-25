@@ -44,7 +44,7 @@ ext {
  * - js (native)
  */
 task buildGraal() {
-    dependsOn cloneAndPatchGraal
+    dependsOn(rootProject.patchGraal)
 
     // Task details
     group = 'Build'
@@ -54,7 +54,7 @@ task buildGraal() {
     def excludeDynamicLanguages = findProperty('excludeDynamicLanguages')
 
     // Register graal repository dummy file as an input and repository directory as output
-    inputs.files(graalCloneDummy)
+    inputs.files(graalPatchDummy)
     outputs.files(graalBuildDummy)
 
     doFirst {
@@ -93,18 +93,18 @@ task buildGraal() {
  * rather than preserved. Graal fails to run with the resolved symlinks.
  */
 task tarGraal(type: Exec) {
-    dependsOn buildGraal
+    dependsOn(buildGraal)
 
     // Task details
     group = 'Other'
     description = 'Generate graalvm.tar file.'
 
     // Set the input to the folder in which the build is generated. We actually want to tar the only subdirectory from this.
-    inputs.dir(graalVMLatestDir)
+    inputs.file(graalBuildDummy)
     outputs.file(graalVMTar)
 
     doFirst {
-        commandLine 'tar', 'czf', graalVMTar, '-C', graalVMDir, '.'
+        commandLine 'tar', 'czf', graalVMTar, '-v', '-C', graalVMDir, '.'
     }
 }
 

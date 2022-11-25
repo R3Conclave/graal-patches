@@ -7,14 +7,14 @@ ext {
 
 // Tasks
 task buildGraalSDK(type: Exec) {
-    dependsOn cloneAndPatchGraal
+    dependsOn(rootProject.patchGraal)
 
     // Task details
     group = 'Other'
     description = 'Generate graal-sdk.jar file.'
 
-    // Set the input to the folder in which the build is generated from
-    inputs.dir(graalSDKDir)
+    // Set the input to the repository patch dummy file
+    inputs.file(rootProject.graalPatchDummy)
     outputs.file(graalSDKJar)
 
     doFirst {

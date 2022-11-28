@@ -13,8 +13,9 @@ task buildGraalSDK(type: Exec) {
     group = 'Other'
     description = 'Generate graal-sdk.jar file.'
 
-    // Set the input to the repository patch dummy file
-    inputs.file(rootProject.graalPatchDummy)
+    // Depends on output of patchGraal task
+    // See comment in root build.gradle for more information on dummy files
+    inputs.file(graalPatchDummy)
     outputs.file(graalSDKJar)
 
     doFirst {

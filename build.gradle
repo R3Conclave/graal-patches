@@ -50,7 +50,8 @@ task cloneGraal(type: Exec) {
     inputs.property('graalCommitID', graal_commit_id)
     inputs.file(cloneScript)
 
-    // Used to detect if subsequent tasks should re-run
+    // Depends on output of cloneGraal task
+    // See comment above for more information on dummy files
     outputs.file(graalCloneDummy)
 
     doFirst {
@@ -76,6 +77,8 @@ task patchGraal(type: Exec) {
     def patchScript = "${rootProject.projectDir}/scripts/patchGraal.sh"
     def patchFile = "${rootProject.projectDir}/patches/graal.patch"
 
+    // Depends on output of cloneGraal task
+    // See comment above for more information on dummy files
     inputs.files(patchScript, patchFile, graalCloneDummy)
     outputs.file(graalPatchDummy)
 

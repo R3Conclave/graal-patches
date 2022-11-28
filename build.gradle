@@ -19,11 +19,16 @@ ext {
     tempDir = "${rootProject.buildDir}/tmp"
     graalDir = "$tempDir/graal"
 
-    // These files are used as a dummies in place of the graalvm repository directory.
-    // This prevents buildGraal from re-triggering clone/patch operations and breaking incremental builds.
+    // The build process implemented here works by cloning a specific version of graalvm into the build directory of
+    // this project, patching it, then building it using its native build system. Ideally, we'd use the repository
+    // directory itself as the input/output for gradle tasks, but this won't work. Gradle will detect changes to the
+    // content of the directory and determine that the task is "not up to date", thereby breaking incremental builds,
+    // see https://docs.gradle.org/current/userguide/more_about_tasks.html for more information.
+    // By using dummy files in place of the repository directory, we avoid this problem. The dummy files contain the
+    // date and time of the last time the associated built task was run.
     graalCloneDummy = "$tempDir/graal_cloned_time"
     graalPatchDummy = "$tempDir/graal_patched_time"
-    graalBuildDummy = "$tempDir/graal_build_dummy"
+    graalBuildDummy = "$tempDir/graal_built_time"
 }
 
 // Why is this necessary? Who knows!

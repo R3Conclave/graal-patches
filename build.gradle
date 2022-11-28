@@ -31,7 +31,8 @@ ext {
     graalBuildDummy = "$tempDir/graal_built_time"
 }
 
-// Why is this necessary? Who knows!
+// There is no clean task in the root build.gradle, so here we add one
+// If we don't do this, build/tmp will not be cleaned.
 tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }

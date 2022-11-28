@@ -4,10 +4,6 @@ ext {
     graalVMLatestDir = "$graalDir/vm/latest_graalvm/"
     graalVMTar = "$buildDir/distributions/graalvm.tar.gz"
     graalVMDir = "" // This variable is set once the directory is created. This is because the name of the directory depends on the Graal version
-
-    // These files are used as a dummy outputs in place of the graalvm repository directory.
-    // This prevents buildGraal from re-triggering cloneAndPatchRepository.
-    graalBuildDummy = "$tempDir/graal_built_time"
 }
 
 // Tasks

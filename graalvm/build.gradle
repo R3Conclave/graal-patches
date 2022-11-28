@@ -4,10 +4,6 @@ ext {
     graalVMLatestDir = "$graalDir/vm/latest_graalvm/"
     graalVMTar = "$buildDir/distributions/graalvm.tar.gz"
     graalVMDir = "" // This variable is set once the directory is created. This is because the name of the directory depends on the Graal version
-
-    // These files are used as a dummy outputs in place of the graalvm repository directory.
-    // This prevents buildGraal from re-triggering cloneAndPatchRepository.
-    graalBuildDummy = "$tempDir/graal_built_time"
 }
 
 // Tasks
@@ -44,7 +40,7 @@ ext {
  * - js (native)
  */
 task buildGraal() {
-    dependsOn cloneAndPatchGraal
+    dependsOn(rootProject.patchGraal)
 
     // Task details
     group = 'Build'
@@ -53,8 +49,9 @@ task buildGraal() {
     //  This property can be used to speed up an SDK build when no dynamic languages are needed
     def excludeDynamicLanguages = findProperty('excludeDynamicLanguages')
 
-    // Register graal repository dummy file as an input and repository directory as output
-    inputs.files(graalCloneDummy)
+    // Depends on output of patchGraal task
+    // See comment in root build.gradle for more information on dummy files
+    inputs.files(graalPatchDummy)
     outputs.files(graalBuildDummy)
 
     doFirst {
@@ -93,18 +90,21 @@ task buildGraal() {
  * rather than preserved. Graal fails to run with the resolved symlinks.
  */
 task tarGraal(type: Exec) {
-    dependsOn buildGraal
+    dependsOn(buildGraal)
 
     // Task details
     group = 'Other'
     description = 'Generate graalvm.tar file.'
 
+    // Depends on output of buildGraal task
+    // See comment in root build.gradle for more information on dummy files
+    inputs.file(graalBuildDummy)
+
     // Set the input to the folder in which the build is generated. We actually want to tar the only subdirectory from this.
-    inputs.dir(graalVMLatestDir)
     outputs.file(graalVMTar)
 
     doFirst {
-        commandLine 'tar', 'czf', graalVMTar, '-C', graalVMDir, '.'
+        commandLine 'tar', 'czf', graalVMTar, '-v', '-C', graalVMDir, '.'
     }
 }
 

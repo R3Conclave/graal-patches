@@ -19,39 +19,86 @@ ext {
     tempDir = "${rootProject.buildDir}/tmp"
     graalDir = "$tempDir/graal"
 
-    // This file is used as a dummy output in place of the graalvm repository directory.
-    // This prevents buildGraal from re-triggering cloneAndPatchRepository.
+    // The build process implemented here works by cloning a specific version of graalvm into the build directory of
+    // this project, patching it, then building it using its native build system. Ideally, we'd use the repository
+    // directory itself as the input/output for gradle tasks, but this won't work. Gradle will detect changes to the
+    // content of the directory and determine that the task is "not up to date", thereby breaking incremental builds,
+    // see https://docs.gradle.org/current/userguide/more_about_tasks.html for more information.
+    // By using dummy files in place of the repository directory, we avoid this problem. The dummy files contain the
+    // date and time of the last time the associated built task was run.
     graalCloneDummy = "$tempDir/graal_cloned_time"
+    graalPatchDummy = "$tempDir/graal_patched_time"
+    graalBuildDummy = "$tempDir/graal_built_time"
+}
+
+// There is no clean task in the root build.gradle, so here we add one
+// If we don't do this, build/tmp will not be cleaned.
+tasks.register('clean', Delete) {
+    delete rootProject.buildDir
+}
+
+task cloneGraal(type: Exec) {
+
+    // Task details
+    group = 'Other'
+    description = 'Clone a specific version of Graal. Delete existing graal clone if present.'
+
+    def cloneScript = "${rootProject.projectDir}/scripts/cloneGraal.sh"
+
+    // Re-run this only if the version or commit ID have changed.
+    inputs.property('graalVersion', graal_version)
+    inputs.property('graalCommitID', graal_commit_id)
+    inputs.file(cloneScript)
+
+    // Depends on output of cloneGraal task
+    // See comment above for more information on dummy files
+    outputs.file(graalCloneDummy)
+
+    doFirst {
+        mkdir tempDir
+        workingDir tempDir
+        commandLine "$cloneScript", "$graal_version", "$graal_commit_id"
+    }
+
+    doLast {
+        // Write current date-time to dummy file. If this task is run again, the content of this file
+        // will change and subsequent tasks will re-run.
+        writeDateToFile(graalCloneDummy)
+    }
+}
+
+task patchGraal(type: Exec) {
+    dependsOn(cloneGraal)
+
+    // Task details
+    group = 'Other'
+    description = 'Patch the graal repository with Conclave specific changes.'
+
+    def patchScript = "${rootProject.projectDir}/scripts/patchGraal.sh"
+    def patchFile = "${rootProject.projectDir}/patches/graal.patch"
+
+    // Depends on output of cloneGraal task
+    // See comment above for more information on dummy files
+    inputs.files(patchScript, patchFile, graalCloneDummy)
+    outputs.file(graalPatchDummy)
+
+    doFirst {
+        mkdir tempDir
+        workingDir tempDir
+        commandLine "$patchScript"
+    }
+
+    doLast {
+        // Write current date-time to dummy file. If this task is run again, the content of this file
+        // will change and subsequent tasks will re-run.
+        writeDateToFile(graalPatchDummy)
+    }
 }
 
 subprojects {
     apply plugin: 'maven-publish'  // Plugin to publish artifacts to a maven repo
     apply plugin: 'signing'
     apply plugin: 'java'
-
-    task cloneAndPatchGraal(type: Exec) {
-
-        // Task details
-        group = 'Other'
-        description = 'Clones a specific version of Graal and patches the source code with the required changes for Conclave.'
-
-        def patchingScript = "${rootProject.projectDir}/scripts/cloneAndPatch.sh"
-        def graalPatch = "${rootProject.projectDir}/patches/graal.patch"
-
-        inputs.files(patchingScript, graalPatch)
-        outputs.files(graalCloneDummy)
-
-        doFirst {
-            mkdir tempDir
-            workingDir tempDir
-            commandLine "$patchingScript", "$graal_version", "$graal_commit_id"
-            //commandLine "ls"
-
-            // Write current date to graal clone dummy file. If this task is run again, the content of this file
-            // will change and subsequent tasks will run.
-            writeDateToFile(graalCloneDummy)
-        }
-    }
 
     signing {
         // Signing is required for the publication of releases to Maven Central.
@@ -67,7 +114,6 @@ subprojects {
 
     publishing {
         publications {
-
             maven(MavenPublication) {
                 addPomDetails(pom, project.name, getProjectDescription(project.name))
             }
